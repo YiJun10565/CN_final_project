@@ -11,6 +11,7 @@ def accept_wrapper(s):
     conn.setblocking(False)
     addr_list[conn.fileno()] = addr
     readset.append(conn)
+
 def sign_up_service(data):
     account = data[1]
     password = data[2]
@@ -37,11 +38,33 @@ def sign_up_service(data):
     f.write(data_back_passwd)
     f.close()
 
+def sign_in_service(data):
+    account = data[1]
+    password = data[2]
+    path = 'passwd'
+    f = open(path, 'r')
+    passwd_list = f.read()
+    passwd_list = passwd_list.split(":")
+    passwd_list = passwd_list[:-1]
+    if account in passwd_list:
+        idx = passwd_list.index(account)
+        pwd_from_file = passwd_list[idx + 1]
+        pwd_from_file = base64.b64decode(pwd_from_file.encode())
+        pwd_from_file = pwd_from_file.decode()
+        if pwd_from_file == password:
+            send_data = 'ACK'
+            s.send(send_data.encode())
+        else:
+            send_data = 'NAK'
+            s.send(send_data.encode())
+    else:
+        send_data = 'NAK'
+        s.send(send_data.encode())
 def do_service(recv_data):
     recv_data = recv_data.decode()
     data = recv_data.split(":")
     if data[0] == 'Sign in':
-        a = 1 
+        sign_in_service(data) 
     elif data[0] == 'Sign up':
         sign_up_service(data)
     # not done yet

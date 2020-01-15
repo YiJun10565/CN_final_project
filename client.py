@@ -3,30 +3,43 @@ import selectors
 import sys
 import getpass
 import types
+
 fail = False
 state = 'INITIAL'
 
 def do_service(message):
+    global state
     if message == 'command':
         print('-------Command list-------')
         if state == 'INITIAL':
             print('Sign up')
             print('Sign in')
+        elif state == 'Sign in':
+            print('asd')
         print('--------------------------')    
-    elif message == 'Sign up':
+    elif state == 'INITIAL' and message == 'Sign up':
         account = input('please input wanted account id : ')
         password = getpass.getpass('please input wanted password : ')
-        state = 'REQUEST_SEND'
         data = 'Sign up' + ':' + account + ':' + password
         sock.send(data.encode())
         check = sock.recv(1024)
         check = check.decode()
         if check == 'ACK':
-            print('Register successful!')
+            print('Register successfully!')
         else:
             print('The account is exist!')
-
-        
+    elif state == 'INITIAL' and message == 'Sign in':
+        account = input('please input your account id : ')
+        password = getpass.getpass('please input your password : ')
+        data = 'Sign in' + ':' + account + ':' + password
+        sock.send(data.encode())
+        check = sock.recv(1024)
+        check = check.decode()
+        if check == 'ACK':
+            print('Sign in successfully!')
+            state = 'Sign in'
+        else:
+            print('Account id/password wrong!!')
         
 """
 def service_connection():
