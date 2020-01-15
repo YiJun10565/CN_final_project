@@ -55,19 +55,6 @@ server.setblocking(False)
 print(f'the server is listening at {HOST}:{PORT}')
 print('waiting for connection...')
 
-
-"""conn, addr = server.accept()
-
-print(f'connect success addr={addr}')
-print('waiting for message')
-while True:
-    msg = conn.recv(1024)
-    print('the client send:', msg.decode())
-    response = input('enter your response: ')
-    conn.send(response.encode())
-    print('waiting for answer')
-"""
-
 while True:
     readable,writable,exceptionable = select.select(readset,writeset,exceptionset,0)
     for s in readable:
