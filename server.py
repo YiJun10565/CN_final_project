@@ -12,9 +12,11 @@ def accept_wrapper(s):
 
 
 def do_service(recv_data):
-    if recv_data == 'Sign in':
+    recv_data = recv_data.decode()
+    data = recv_data.split(":")
+    if data == 'Sign in':
         print('asd') 
-    elif recv_data == 'Sign up':
+    elif data == 'Sign up':
         print('ad')
     # not done yet
     #

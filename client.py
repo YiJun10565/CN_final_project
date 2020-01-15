@@ -1,6 +1,7 @@
 import socket
 import selectors
 import sys
+import getpass
 import types
 fail = False
 state = 'INITIAL'
@@ -10,9 +11,17 @@ def do_service(message):
         print('-------Command list-------')
         if state == 'INITIAL':
             print('Sign up')
-            
+            print('Sign in')
+        print('--------------------------')    
     elif message == 'Sign up':
-        print('asd')
+        account = input('please input wanted account id : ')
+        password = getpass.getpass('please input wanted password : ')
+        state = 'REQUEST_SEND'
+        data = account + ':' + password
+        sock.send(data.encode())
+        data = sock.recv(1024)
+        print(data)
+        
 """
 def service_connection():
     sock = key.fileobj
