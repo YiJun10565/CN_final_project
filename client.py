@@ -4,11 +4,13 @@ import sys
 import getpass
 import types
 
-fail = False
+#control the client status for command uses
 state = 'INITIAL'
 
 def do_service(message):
-    global state
+    global state #get global variable state
+    
+    #list all the command can be used currently for client
     if message == 'command':
         print('-------Command list-------')
         if state == 'INITIAL':
@@ -17,6 +19,7 @@ def do_service(message):
         elif state == 'Sign in':
             print('asd')
         print('--------------------------')    
+    #send a message to server for sign up service
     elif state == 'INITIAL' and message == 'Sign up':
         account = input('please input wanted account id : ')
         password = getpass.getpass('please input wanted password : ')
@@ -28,6 +31,7 @@ def do_service(message):
             print('Register successfully!')
         else:
             print('The account is exist!')
+    #send a message to server for sign in service
     elif state == 'INITIAL' and message == 'Sign in':
         account = input('please input your account id : ')
         password = getpass.getpass('please input your password : ')
@@ -41,58 +45,22 @@ def do_service(message):
         else:
             print('Account id/password wrong!!')
         
-"""
-def service_connection():
-    sock = key.fileobj
-    data = key.data
-    if mask & selectors.EVENT_READ:
-        recv_data = sock.recv(1024)
-        if recv_data:
-            print('received', repr(recv_data), 'from connection', data.connid)
-            data.recv_total += len(recv_data)
-        if not recv_data or data.recv_total == data.msg_total:
-            print('closing connection', data.connid)
-            sel.unregister(sock)
-            sock.close()
-    if mask & selectors.EVENT_WRITE:
-        if data.outb:
-            sent = sock.send(data.outb)
-            data.outb = data.outb[sent:]
-"""
 
 HOST = socket.gethostbyname(socket.gethostname())
 PORT = 1234
-#print(f'Connection to {HOST}:{PORT}')
 
 server_addr = (HOST, PORT)
 print('starting connection to', server_addr)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+#check the connection whehter success
 if sock.connect_ex(server_addr) != 0:
     fail = True 
-data = types.SimpleNamespace(outb = b'')
-
 if fail == True:
     print('Failed to connect')
 else:
     print('Success connect!')
+    #begin to interact with server
     while True:
         message = input('please input command:')
         do_service(message)
-
-"""
-try:
-    host, port = input('please enter host address like host:port: ').split(':')
-except ValueError:
-    print('the address is wrong')
-    sys.exit(-1)
-
-if len(host) == 0 or len(port) == 0:
-    print('the address is wrong')
-    sys.exit(-1)
-else:
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((host), (int)port)
-    client.sendall(b'Hello, world')
-    data = s.recv(1024)
-    print('Receiver', repr(data))
-"""

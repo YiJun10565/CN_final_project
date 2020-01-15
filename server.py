@@ -13,17 +13,20 @@ def accept_wrapper(s):
     readset.append(conn)
 
 def sign_up_service(data):
+    #get the account and password form client sending
     account = data[1]
     password = data[2]
+    #open the passwd file to check
     path = 'passwd'
     f = open(path,'r+')
     passwd_list = f.read()
     passwd_list = passwd_list.split(":")
-    passwd_list = passwd_list[:-1]
+    passwd_list = passwd_list[:-1]# this line is to remove the last '\n'
+    #create a string that contains currently context of passwd file
     data_back_passwd = ''
     for j in passwd_list:
         data_back_passwd += str(j) + ":"
-
+    
     if account in passwd_list:
         send_data = 'NAK'
         s.send(send_data.encode())
@@ -32,25 +35,34 @@ def sign_up_service(data):
         s.send(send_data.encode())
         password = base64.b64encode(password.encode())
         password = password.decode()
+        #if sign up success, append the account and encrypted password to passwd file
         data_back_passwd += account + ":" + password + ":"
         print('register success')
+    #write all context back to passwd file
     f.seek(0)
     f.write(data_back_passwd)
     f.close()
 
 def sign_in_service(data):
+    #get the account and password from client sending
     account = data[1]
     password = data[2]
+    #open the passwd file to check
     path = 'passwd'
     f = open(path, 'r')
     passwd_list = f.read()
     passwd_list = passwd_list.split(":")
-    passwd_list = passwd_list[:-1]
+    passwd_list = passwd_list[:-1] # this line is to remove the last '\n'
     if account in passwd_list:
+        #our passwd data structure is [account id:encrypted password:]
+        #so the next index of the account id is its password
         idx = passwd_list.index(account)
         pwd_from_file = passwd_list[idx + 1]
         pwd_from_file = base64.b64decode(pwd_from_file.encode())
         pwd_from_file = pwd_from_file.decode()
+        #check the password
+        #if true send ACK to client
+        #else send NAK to client 
         if pwd_from_file == password:
             send_data = 'ACK'
             s.send(send_data.encode())
@@ -104,6 +116,7 @@ writeset = []
 exceptionset = []
 server.setblocking(False)
 #-------------------------------------
+
 
 print(f'the server is listening at {HOST}:{PORT}')
 print('waiting for connection...')
