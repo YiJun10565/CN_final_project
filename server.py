@@ -60,6 +60,8 @@ def sign_in_service(data):
     else:
         send_data = 'NAK'
         s.send(send_data.encode())
+    f.close()
+
 def do_service(recv_data):
     recv_data = recv_data.decode()
     data = recv_data.split(":")
