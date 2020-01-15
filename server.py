@@ -1,6 +1,8 @@
 import socket
 import select
 import types
+import os
+import base64
 
 def accept_wrapper(s):
     #only deal with accept client
@@ -9,15 +11,39 @@ def accept_wrapper(s):
     conn.setblocking(False)
     addr_list[conn.fileno()] = addr
     readset.append(conn)
+def sign_up_service(data):
+    account = data[1]
+    password = data[2]
+    path = 'passwd'
+    f = open(path,'r+')
+    passwd_list = f.read()
+    passwd_list = passwd_list.split(":")
+    passwd_list = passwd_list[:-1]
+    data_back_passwd = ''
+    for j in passwd_list:
+        data_back_passwd += str(j) + ":"
 
+    if account in passwd_list:
+        send_data = 'NAK'
+        s.send(send_data.encode())
+    else:
+        send_data = 'ACK'
+        s.send(send_data.encode())
+        password = base64.b64encode(password.encode())
+        password = password.decode()
+        data_back_passwd += account + ":" + password + ":"
+        print('register success')
+    f.seek(0)
+    f.write(data_back_passwd)
+    f.close()
 
 def do_service(recv_data):
     recv_data = recv_data.decode()
     data = recv_data.split(":")
-    if data == 'Sign in':
-        print('asd') 
-    elif data == 'Sign up':
-        print('ad')
+    if data[0] == 'Sign in':
+        a = 1 
+    elif data[0] == 'Sign up':
+        sign_up_service(data)
     # not done yet
     #
     #

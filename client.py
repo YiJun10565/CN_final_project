@@ -17,10 +17,16 @@ def do_service(message):
         account = input('please input wanted account id : ')
         password = getpass.getpass('please input wanted password : ')
         state = 'REQUEST_SEND'
-        data = account + ':' + password
+        data = 'Sign up' + ':' + account + ':' + password
         sock.send(data.encode())
-        data = sock.recv(1024)
-        print(data)
+        check = sock.recv(1024)
+        check = check.decode()
+        if check == 'ACK':
+            print('Register successful!')
+        else:
+            print('The account is exist!')
+
+        
         
 """
 def service_connection():
