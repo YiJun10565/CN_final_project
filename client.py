@@ -36,10 +36,11 @@ def serve(s):
         print(data)
         #print(data + '\n' + prefix, end='')
         print(prefix, end='')
+        data.split()
         sys.stdout.flush()
         if state == 'INITIAL' and 'Login successfully' in data:
             state = 'Login'
-            data = data.split()
+         #   data = data.split()
             account = data[2]
             prefix = account + " : "
 """    if state == 'INITIAL':
@@ -99,3 +100,5 @@ else:
                 serve(s)
             else:
                 communicate(s)
+        if not readset:
+            break
