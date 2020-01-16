@@ -23,25 +23,49 @@ def serve(s):
     global state
     global account
     global prefix
-
+    global writeset
+    global data
     data = s.recv(1024)
     data = data.decode()
     print(data)
+    #print(data + '\n' + prefix, end='')
+    print(prefix, end='')
+    sys.stdout.flush()
     if state == 'INITIAL' and 'Login successfully' in data:
         state = 'Login'
         data = data.split()
         account = data[2]
         prefix = account + " : "
-    sys.stdin.flush()
+"""    if state == 'INITIAL':
+        if data.find("Password") > 0 or data.find("password") > 0:
+            inp = getpass.getpass('')
+        else:
+            inp = input('')
+        send_data = inp.encode()
+        s.send(send_data)"""
+
+def communicate(s):
+    global state
     if state == 'INITIAL':
         if data.find("Password") > 0 or data.find("password") > 0:
-            inp = getpass.getpass(prefix)
+            inp = getpass.getpass('')
         else:
-            inp = input(prefix)
-    else:
-        inp = input(prefix)
-    send_data = inp.encode()
-    s.send(send_data)
+            inp = input('')
+        if inp == '':
+            print(prefix, end = '')
+            sys.stdout.flush()
+            return
+        send_data = inp.encode()
+        sock.send(send_data)
+
+    elif state == 'Login':
+        inp = input('')
+        if inp == '':
+            print(prefix, end = '')
+            sys.stdout.flush()
+            return
+        send_data = inp.encode()
+        sock.send(send_data)
 
 HOST = socket.gethostbyname(socket.gethostname())
 PORT = 1234
@@ -52,6 +76,8 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 readset = [sock]
 writeset = []
 exceptionset = []
+data = ''
+readset.append(sys.stdin)
 #check the connection whehter success
 if sock.connect_ex(server_addr) != 0:
     print('Failed to connect')
@@ -63,4 +89,7 @@ else:
         for s in readable:
             #message = input('please input command:')
             #do_service(message)
-            serve(s)
+            if s is sock:
+                serve(s)
+            else:
+                communicate(s)
