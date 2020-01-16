@@ -14,6 +14,8 @@ def accept_wrapper(s):
     addr_list[conn.fileno()] = addr
     State_list[conn.fileno()] = "Login Interface"
     readset.append(conn)
+    conn.send("Connected to the server".encode())
+
 
 def sign_up_service(fileno, data):
     #get the account and password from client sending
@@ -107,7 +109,7 @@ def Login_service(fileno, data):
     else :
         send_data = "Login unknown command, please try again\n"
         send_data += "Enter 'Sign in' to sign in, 'Sign up' to sign up."
-    s.send(send_data(encode()))
+    s.send(send_data.encode())
 
 def do_service(fileno, recv_data):
     recv_data = recv_data.decode()
@@ -141,12 +143,25 @@ def service_connection(s):
         readset.remove(s)
         s.close()
 
+def Change_Port(PORT):
+    for i in range(1, len(os.sys.argv)):
+        if(os.sys.argv[i] == "-p"):
+            if i == len(os.sys.argv) -1:
+                print("-p can't be the last argv")
+            else :
+                print("Change port to ", os.sys.argv[i+1])
+                PORT = int(os.sys.argv[i+1])
+    return PORT
+        
+
 
 if __name__ == "__main__":
     #-------Initialize all variable-------
     HOST = socket.gethostbyname(socket.gethostname())
     PORT = 1234
     
+    PORT = Change_Port(PORT)
+
     # Potential State_list = [ "Unuse", "Login Interface", "Sign in", "Sign up", "Choose person", "Communicating"]
     # Potential sub_State_list = [ "Unuse", "Disconnected", "Enter Account", "Enter Password", "Enter Password again", "Receive Offline message", "Start talking"]
     # a fileno -> a state and a substate
