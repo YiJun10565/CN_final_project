@@ -62,7 +62,7 @@ def serve(s):
     print(data,end="")
     if state == 'INITIAL' and 'Login successfully' in data:
         state = 'Login'
-        data = data.split(" ")
+        data = data.split()
         account = data[2] + " : "
     sys.stdin.flush()
     if state == 'INITIAL':
