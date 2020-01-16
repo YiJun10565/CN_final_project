@@ -40,6 +40,8 @@ def sign_up_service(fileno, data):
             sub_State_list[fileno] = "Enter Account"
             tmp_pwd[fileno] = ""
             tmp_acc[fileno] = ""
+    else :
+        print("sign up error")
     s.send(send_data.encode())
 
     
@@ -87,6 +89,8 @@ def sign_in_service(fileno, data):
             sub_State_list[fileno] = "Unuse"
         else :
             send_data = "Wrong password, please enter again."
+    else :
+        print("sign in error")
     send_data += "\nYou can enter '(Exit)' to exit whenever you want."
 
     s.send(send_data.encode())
@@ -101,7 +105,7 @@ def Login_service(fileno, data):
         State_list[fileno] = "Sign up"
         sub_State_list[fileno] = "Enter Account"
     else :
-        send_data = "Unknown command, please try again\n"
+        send_data = "Login unknown command, please try again\n"
         send_data += "Enter 'Sign in' to sign in, 'Sign up' to sign up."
     s.send(send_data(encode()))
 
@@ -113,7 +117,8 @@ def do_service(fileno, recv_data):
         sign_in_service(fileno, recv_data)        
     elif(State_list[fileno] == "Sign up"):
         sign_up_service(fileno, recv_data)
-                
+    else :
+        print("do service error(state error)")
     # data = recv_data.split(":")
     # if data[0] == 'Sign in':
     #     sign_in_service(data) 
@@ -127,7 +132,7 @@ def service_connection(s):
     # if client send a request. If the data of the request is none, close this client's fd
     data = s.recv(1024)
     if data:
-        do_service(s.fileno, data)
+        do_service(s.fileno(), data)
     else:
         print('closing connection to', addr_list[s.fileno()])
         addr_list[s.fileno()] = ''
@@ -152,7 +157,7 @@ if __name__ == "__main__":
     # due to there will be 2 different pkg for the 2 msg
     tmp_acc = []
     tmp_pwd = []
-    for i in range(15):
+    for i in range(1500):
         addr_list.append('')
         tmp_acc.append('')
         tmp_pwd.append('')
@@ -174,7 +179,7 @@ if __name__ == "__main__":
     # read Account file in csv 
     with open("./Account.csv", newline='') as csvfile:
         # rows is a 2-dim list, [ [acnt0, pswd0],[acnt1, pswd1], ... ]
-        rows = csv.reader(csvfile)    
+        rows = csv.reader(csvfile)     
         for row in rows:
             # Save accounts info into a local dictionary
             Account_Dict.update({row[0]: row[1]})
