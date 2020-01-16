@@ -62,6 +62,8 @@ def serve(s):
             inp = input('')
     else:
         inp = input(account)
+    send_data = inp.encode()
+    s.send(send_data)
 
 HOST = socket.gethostbyname(socket.gethostname())
 PORT = 1234
