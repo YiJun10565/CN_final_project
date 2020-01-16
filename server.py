@@ -14,18 +14,26 @@ def accept_wrapper(s):
     addr_list[conn.fileno()] = addr
     State_list[conn.fileno()] = "Login Interface"
     readset.append(conn)
-    conn.send("Connected to the server".encode())
+    conn.send("Connected to the server\nEnter 'Sign in' to sign in, 'Sign up' to sign up".encode())
 
 
 def sign_up_service(fileno, data):
     #get the account and password from client sending
     if(sub_State_list[fileno] == "Enter Account"):
-        if data in Account_Dict:
-            send_data = "Account has already existed:"
+        invalid_name = 0
+        for i in range(len(data)):
+            if  not ( (data[i]  >= '0' && data[i] <= '9') || (data[i] >= 'a' && data[i] <= 'z') || (data[i] >= 'A' || data[i] <= 'Z') ):
+                invalid_name = 1
+                break
+        if invalid_name:
+            send_data = "Invalid account, please enter a valid one (only contains 0~9, a~z, A~Z)"
         else:
-            tmp_acc[fileno] = data
-            sub_State_list[fileno] = "Enter Password"
-            send_data = "Please enter the password you want:"
+            if data in Account_Dict:
+                send_data = "Account has already existed:"
+            else:
+                tmp_acc[fileno] = data
+                sub_State_list[fileno] = "Enter Password"
+                send_data = "Please enter the password you want:"
 
     elif(sub_State_list[fileno] == "Enter Password"):
         tmp_pwd[fileno] = data
@@ -39,7 +47,6 @@ def sign_up_service(fileno, data):
             send_data = "Sign up Successfully" + tmp_acc[fileno]
             with open('Account.csv', 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                # 對於每個key(英文單字),及words[key](中文)做寫入，其中兩者會被寫入到同一行
                 for key in Account_Dict:
                     writer.writerow( [key, Account_Dict[key]] )
             State_list[fileno] = "Login Interface"
@@ -129,6 +136,9 @@ def do_service(fileno, recv_data):
         sign_up_service(fileno, recv_data)
     else :
         print("do service error(state error)")
+        send_data = "Error service"
+        s.send(send_data.encode())
+    print("State = ", State_list[fileno], "\nsubState = ", sub_State_list[fileno])
     # data = recv_data.split(":")
     # if data[0] == 'Sign in':
     #     sign_in_service(data) 
@@ -170,8 +180,8 @@ if __name__ == "__main__":
     
     PORT = Change_Port(PORT)
 
-    # Potential State_list = [ "Unuse", "Login Interface", "Sign in", "Sign up", "Choose person", "Communicating"]
-    # Potential sub_State_list = [ "Unuse", "Disconnected", "Enter Account", "Enter Password", "Enter Password again", "Receive Offline message", "Start talking"]
+    # Potential State_list = [ "", "Login Interface", "Sign in", "Sign up", "Choose person", "Communicating"]
+    # Potential sub_State_list = [ "", "Disconnected", "Enter Account", "Enter Password", "Enter Password again", "Receive Offline message", "Start talking"]
     # a fileno -> a state and a substate
     addr_list = []
     State_list = []
@@ -184,8 +194,8 @@ if __name__ == "__main__":
         addr_list.append('')
         tmp_acc.append('')
         tmp_pwd.append('')
-        State_list.append("Unuse")
-        sub_State_list.append("Unuse")
+        State_list.append('')
+        sub_State_list.append('')
         ##create server socket
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((HOST, PORT))

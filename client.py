@@ -7,7 +7,8 @@ import os
 fail = ''
 #control the client status for command uses
 state = 'INITIAL'
-account = ''
+account = "Guest"
+prefix = account + " : "
 PORT = 0
 def Handling_argv():
     global PORT
@@ -17,61 +18,28 @@ def Handling_argv():
                 print('-p can\'t be the last argv') 
             else:
                 PORT = int(os.sys.argv[i+1])
-def do_service(message):
-    global state #get global variable state
-    
-    #list all the command can be used currently for client
-    if message == 'command':
-        print('-------Command list-------')
-        if state == 'INITIAL':
-            print('Sign up')
-            print('Sign in')
-        elif state == 'Sign in':
-            print('asd')
-        print('--------------------------')    
-    #send a message to server for sign up service
-    elif state == 'INITIAL' and message == 'Sign up':
-        account = input('please input wanted account id : ')
-        password = getpass.getpass('please input wanted password : ')
-        data = 'Sign up' + ':' + account + ':' + password
-        sock.send(data.encode())
-        check = sock.recv(1024)
-        check = check.decode()
-        if check == 'ACK':
-            print('Register successfully!')
-        else:
-            print('The account is exist!')
-    #send a message to server for sign in service
-    elif state == 'INITIAL' and message == 'Sign in':
-        account = input('please input your account id : ')
-        password = getpass.getpass('please input your password : ')
-        data = 'Sign in' + ':' + account + ':' + password
-        sock.send(data.encode())
-        check = sock.recv(1024)
-        check = check.decode()
-        if check == 'ACK':
-            print('Sign in successfully!')
-            state = 'Sign in'
-        else:
-            print('Account id/password wrong!!')
+
 def serve(s):
     global state
     global account
+    global prefix
+
     data = s.recv(1024)
     data = data.decode()
-    print(data,end="")
+    print(data)
     if state == 'INITIAL' and 'Login successfully' in data:
         state = 'Login'
         data = data.split()
-        account = data[2] + " : "
+        account = data[2]
+        prefix = account + " : "
     sys.stdin.flush()
     if state == 'INITIAL':
-        if 'password' in data:
-            inp = getpass.getpass('')
+        if data.find("Password") > 0 or data.find("password") > 0:
+            inp = getpass.getpass(prefix)
         else:
-            inp = input('')
+            inp = input(prefix)
     else:
-        inp = input(account)
+        inp = input(prefix)
     send_data = inp.encode()
     s.send(send_data)
 
