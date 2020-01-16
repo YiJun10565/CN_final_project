@@ -19,6 +19,27 @@ def Handling_argv():
             else:
                 PORT = int(os.sys.argv[i+1])
 
+def chmod(inp):
+    global state
+    if inp == 'Sign in':
+        state = 'Sign in'
+    elif inp == 'Sign up':
+        state = 'Sign up'
+
+def clean():
+    global state
+    global prefix
+    if state == 'INITIAL':
+        readset.remove(sock)
+        sock.close()
+        print('Bye~')
+    elif state == 'Login':
+        readset.remove(sys.stdin)
+        state = 'INITIAL'
+        prefix = "Guest" + " : "
+    else:
+        state = 'INITIAL'
+        prefix = 'Guest' + ' : '
 def serve(s):
     global state
     global account
@@ -27,7 +48,7 @@ def serve(s):
     global data
     data = s.recv(1024)
     if not data:
-        print('closing connection')
+        print('server closing connection')
         readset.remove(sock)
         sock.close()
         readset.remove(sys.stdin)
@@ -35,25 +56,31 @@ def serve(s):
         data = data.decode()
         print(data)
         #print(data + '\n' + prefix, end='')
-        if state == 'INITIAL' and 'Login successfully' in data:
+        if state == 'Sign in' and 'Login successfully' in data:
             state = 'Login'
             data = data.split()
             account = data[2]
             prefix = account + " : "
+            readset.append(sys.stdin)
         inp = ''
-        if state == 'INITIAL':
+        if state == 'INITIAL' or state == 'Sign in' or state == 'Sign up':
             if data.find("Password") > 0 or data.find("password") > 0:
                 while inp == '':
                     print(prefix, end = '')
                     sys.stdout.flush()
                     inp = getpass.getpass('')
+                    
             else:
                 while inp == '':
                     print(prefix, end = '')
                     sys.stdout.flush()
                     inp = input('')
             send_data = inp.encode()
-            s.send(send_data) 
+            s.send(send_data)
+            chmod(inp)
+            if inp == '(Exit)':
+                clean()
+                return
         elif state == 'Login':
             print(prefix, end = '')
             sys.stdout.flush()
@@ -79,6 +106,10 @@ def communicate(s):
             return
         send_data = inp.encode()
         sock.send(send_data)
+        if inp == '(Exit)':
+            clean()
+
+
 
 HOST = socket.gethostbyname(socket.gethostname())
 PORT = 1234
@@ -90,7 +121,6 @@ readset = [sock]
 writeset = []
 exceptionset = []
 data = ''
-readset.append(sys.stdin)
 #check the connection whehter success
 if sock.connect_ex(server_addr) != 0:
     print('Failed to connect')
