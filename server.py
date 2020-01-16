@@ -27,7 +27,8 @@ def accept_wrapper(s):
     conn.send( send_data.encode())
 
 
-def sign_up_service(fileno, data):
+def sign_up_service(s, data):
+    fileno = s.fileno()
     #get the account and password from client sending
     if(sub_State_list[fileno] == "Enter Account"):
         invalid_name = 0
@@ -70,14 +71,16 @@ def sign_up_service(fileno, data):
         print("sign up error")
     s.send(send_data.encode())
 
-def sign_in_service(fileno, data):
-
+def sign_in_service(s, data):
+    fileno = s.fileno()
     #get the account and password from client sending
     if data == '(Exit)':
         send_data = "Back to login interface"
         send_data += interface_postfix
         State_list[fileno] = "Idle"
         sub_State_list[fileno] = "Idle"
+        s.send(send_data.encode())
+        return
 
     #print("Sign in : ",sub_State_list[fileno] , "data = ", data)
     if sub_State_list[fileno] == "Enter Account":
@@ -90,12 +93,14 @@ def sign_in_service(fileno, data):
 
     elif sub_State_list[fileno] == "Enter Password":
         if base64.b64encode(data.encode()).decode() == Account_Dict[Account_list[fileno]] :
+            print("Login successfully")
             send_data = "Login successfully " + Account_list[fileno]
             #logging_list.append( Account_list[fileno] )
             Login_list[fileno] = True
             State_list[fileno] = "Idle"
             sub_State_list[fileno] = "Idle"
         else :
+            print("Login fail")
             send_data = "Wrong password, please enter again."
     else :
         print("sign in error")
@@ -104,9 +109,8 @@ def sign_in_service(fileno, data):
     
 def Login_service(s, data):
     fileno = s.fileno()
-    print(data, State_list[fileno])
     if(State_list[fileno] == "Idle"):
-        print("Idle", data)
+        print("Idle:", data)
         if(data == "Sign in"):
             send_data = "Please enter your account:"
             State_list[fileno] = "Sign in"
@@ -117,16 +121,16 @@ def Login_service(s, data):
             sub_State_list[fileno] = "Enter Account"
         elif(data == "(Exit)"):
             close_connection(s)
-
+            return
         else :
             send_data = "Login unknown command, please try again\n"
             send_data += "Enter 'Sign in' to sign in, 'Sign up' to sign up."
         s.send(send_data.encode())
 
     elif(State_list[fileno] == "Sign in"):
-        sign_in_service(fileno, data)        
+        sign_in_service(s, data)        
     elif(State_list[fileno] == "Sign up"):
-        sign_up_service(fileno, data)
+        sign_up_service(s, data)
     else:
         print("Unknown state when loging")
 
@@ -137,9 +141,9 @@ def Check(s, account):
     if account not in Account_Dict:
         send_data = account + " is not a existing account"
     for i in range(len(Account_list)):
-        if Account_list[i] == account and logging_list[i] = True:
+        if Account_list[i] == account and Login_list[i] == True:
             send_data = account + " is online"
-    s.send(send_data)
+    s.send(send_data.encode())
 
 def After_Login_service(s, data):
     fileno = s.fileno()
@@ -157,12 +161,13 @@ def After_Login_service(s, data):
             State_list[fileno] = "Sendfile"
         elif(data == "(Exit)"):
             send_data = "Back to login interface"
-            Login_list[fileno] = false
+            Login_list[fileno] = False
+            Account_list[fileno] = ""
             State_list[fileno] = "Idle"
             sub_State_list[fileno] = "Idle"
         else:
             send_data = "Unknown command, please enter again"
-        s.send(send_data)
+        s.send(send_data.encode())
     elif(State_list[fileno] == "Check"):
         Check(s, data)
     #elif(State_list[fileno] == "Commnicate"):
@@ -171,20 +176,22 @@ def After_Login_service(s, data):
     #    Send_file(fileno, data)
 
 def do_service(s, recv_data):
-    
     if(Login_list[s.fileno()] == False):
         print("Login_service")
         Login_service(s, recv_data)
     else:
         print("After Login service")
         After_Login_service(s, recv_data)
+    Print_State(s.fileno())
 
 
 def close_connection(s):
+    fileno = s.fileno()
     print('closing connection to', addr_list[s.fileno()])
-    addr_list[s.fileno()] = ''
-    State_list[s.fileno()] = "Idle"     
-    sub_State_list[s.fileno()] = "Idle"
+    addr_list[fileno] = ''
+    Login_list[fileno] = False
+    State_list[fileno] = "Idle"     
+    sub_State_list[fileno] = "Idle"
     readset.remove(s)
     s.close()
 
@@ -208,6 +215,19 @@ def Change_Port(PORT):
                 PORT = int(os.sys.argv[i+1])
     return PORT
         
+def Print_State(fileno):
+    print("--- print state ----")
+    print("fileno    =", fileno)
+    print("Account   =", Account_list[fileno])
+    x = ""
+    if Login_list[fileno] == True:
+        x = "Yes"
+    else:
+        x = "No"
+    print("Log in?    ", x)
+    print("State     =", State_list[fileno])
+    print("sub State =", sub_State_list[fileno])
+
 
 
 if __name__ == "__main__":
