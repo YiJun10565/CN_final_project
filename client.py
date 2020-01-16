@@ -59,7 +59,7 @@ def serve(s):
     global account
     data = s.recv(1024)
     data = data.decode()
-    print(data)
+    print(data,end="")
     if state == 'INITIAL' and 'Login successfully' in data:
         state = 'Login'
         data = data.split(" ")
