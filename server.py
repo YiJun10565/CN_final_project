@@ -55,7 +55,7 @@ def sign_up_service(s, data):
         if data == Password_list[fileno]:
             encrypted_pwd = base64.b64encode(data.encode()).decode()
             Account_Dict.update( {Account_list[fileno]:encrypted_pwd})
-            send_data = "Sign up Successfully" + Account_list[fileno]
+            send_data = "Sign up Successfully " + Account_list[fileno]
             with open('Account.csv', 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 for key in Account_Dict:
@@ -261,10 +261,6 @@ if __name__ == "__main__":
     # due to there will be 2 different pkg for the 2 msg
     Account_list = []
     Password_list = []
-    for i in range(len(Account_list)):
-        if Account_list[i] == account and Login_list[i] == True:
-            send_data = account + " is online"
-    s.send(send_data.encode())
     
     #logging_list = []
 
