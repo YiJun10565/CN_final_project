@@ -2,7 +2,7 @@ import socket
 import select
 import sys
 import getpass
-import typesa
+import types
 
 #control the client status for command uses
 state = 'INITIAL'
@@ -56,7 +56,7 @@ def serve(s):
         account = data[2] + " : "
     sys.stdin.flush()
     if state == 'INITIAL':
-        if 'Password' in data;
+        if 'Password' in data:
             inp = getpass.getpass('')
         else:
             inp = input('')
@@ -71,7 +71,7 @@ PORT = 1234
 server_addr = (HOST, PORT)
 print('starting connection to', server_addr)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-readset = [server]
+readset = [socket]
 writeset = []
 exceptionset = []
 #check the connection whehter success
