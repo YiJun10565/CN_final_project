@@ -5,6 +5,13 @@ import os
 import base64
 import csv
 
+# string
+# -------------
+
+interface_postfix = "\n Enter 'Sign in' to sign in, 'Sign up' to sign up"
+exit_postfix = "\nYou can enter '(Exit)' to exit whenever you want."
+
+# -------------
 
 def accept_wrapper(s):
     #only deal with accept client
@@ -12,9 +19,11 @@ def accept_wrapper(s):
     print('accept connection from', addr)
     conn.setblocking(False)
     addr_list[conn.fileno()] = addr
-    State_list[conn.fileno()] = "Login Interface"
+    State_list[conn.fileno()] = "Idle"
     readset.append(conn)
-    conn.send("Connected to the server\nEnter 'Sign in' to sign in, 'Sign up' to sign up".encode())
+    send_data = "Connected to the server"
+    send_data += interface_postfix
+    conn.send( send_data.encode())
 
 
 def sign_up_service(fileno, data):
@@ -49,7 +58,7 @@ def sign_up_service(fileno, data):
                 writer = csv.writer(csvfile)
                 for key in Account_Dict:
                     writer.writerow( [key, Account_Dict[key]] )
-            State_list[fileno] = "Login Interface"
+            State_list[fileno] = "Idle"
             sub_State_list[fileno] = ""
         else:
             send_data = "Wrong\nPlease enter the Account you want:"
@@ -63,13 +72,14 @@ def sign_up_service(fileno, data):
 def sign_in_service(fileno, data):
 
     #get the account and password from client sending
-    #if data == '(Exit)':
-        
-        # Back to login interface
-        # Communicate_Exit(fileno)
-    print("Sign in : ",sub_State_list[fileno] , "data = ", data)
+    if data == '(Exit)':
+        send_data = "Back to login interface"
+        send_data += interface_postfix
+        State_list[fileno] = "Idle"
+        sub_State_list[fileno] = "Idle"
+
+    #print("Sign in : ",sub_State_list[fileno] , "data = ", data)
     if sub_State_list[fileno] == "Enter Account":
-        
         if data in Account_Dict:
             tmp_acc[fileno] = data
             sub_State_list[fileno] = "Enter Password"
@@ -80,17 +90,22 @@ def sign_in_service(fileno, data):
     elif sub_State_list[fileno] == "Enter Password":
         if base64.b64encode(data.encode()).decode() == Account_Dict[tmp_acc[fileno]] :
             send_data = "Login successfully " + tmp_acc[fileno]
-            State_list[fileno] = "After Login Interface"
+            #logging_list.append( tmp_acc[fileno] )
+            Login_list[fileno] = True
+            State_list[fileno] = "Idle"
             sub_State_list[fileno] = ""
         else :
             send_data = "Wrong password, please enter again."
     else :
         print("sign in error")
-    send_data += "\nYou can enter '(Exit)' to exit whenever you want."
+    send_data += exit_postfix
     s.send(send_data.encode())
     
-def Login_service(fileno, data):
+def Login_service(s, data):
+    fileno = s.fileno()
+    print(data, State_list[fileno])
     if(State_list[fileno] == "Idle"):
+        print("Idle", data)
         if(data == "Sign in"):
             send_data = "Please enter your account:"
             State_list[fileno] = "Sign in"
@@ -99,16 +114,29 @@ def Login_service(fileno, data):
             send_data = "Please enter the account you want:"
             State_list[fileno] = "Sign up"
             sub_State_list[fileno] = "Enter Account"
+        elif(data == "(Exit)"):
+            close_connection(s)
+
         else :
             send_data = "Login unknown command, please try again\n"
             send_data += "Enter 'Sign in' to sign in, 'Sign up' to sign up."
         s.send(send_data.encode())
-    elif(State_list[fileno] == "Sign in"):
-        sign_in_service(fileno, recv_data)        
-    elif(State_list[fileno] == "Sign up"):
-        sign_up_service(fileno, recv_data)
 
-def After_Login_service(fileno, data):
+    elif(State_list[fileno] == "Sign in"):
+        sign_in_service(fileno, data)        
+    elif(State_list[fileno] == "Sign up"):
+        sign_up_service(fileno, data)
+    else:
+        print("Unknown state when loging")
+
+def Check(fileno, account):
+    send_data = ""
+    if account not in Account_Dict:
+        send_data = "Not existing account"
+    #elif 
+
+def After_Login_service(s, data):
+    fileno = s.fileno()
     if(State_list[fileno] == "Idle"):
         if(data == "Check"):
             send_data = "Please enter the account you want to check if it is online"
@@ -121,47 +149,46 @@ def After_Login_service(fileno, data):
         elif(data == "Send file"):
             send_data = "Please enter the account you want to send file to"
             State_list[fileno] = "Sendfile"
+        elif(data == "(Exit)"):
+            send_data = "Back to login interface"
+            Login_list[fileno] = false
+            State_list[fileno] = "Idle"
+            sub_State_list[fileno] = "Idle"
 
-    #elif(State_list[fileno] == "Check"):
-    #    Check(fileno, data)
+    elif(State_list[fileno] == "Check"):
+        Check(fileno, data)
     #elif(State_list[fileno] == "Commnicate"):
     #    Communicate(fileno, data)
     #elif(State_list[fileno] == "Send file"):
     #    Send_file(fileno, data)
 
-def do_service(fileno, recv_data):
-    recv_data = recv_data.decode()
-    if(Login_list[fileno] == False):
-        Login_service(fileno, recv_data)
+def do_service(s, recv_data):
+    
+    if(Login_list[s.fileno()] == False):
+        print("Login_service")
+        Login_service(s, recv_data)
     else:
-        After_Login_service(fileno, recv_data)
+        print("After Login service")
+        After_Login_service(s, recv_data)
 
-    # else :
-    #     print("do service error(state error)")
-    #     send_data = "Error service"
-    #     s.send(send_data.encode())
-    print("Login = ", Login_list[fileno],"State = ", State_list[fileno], "\nsubState = ", sub_State_list[fileno])
-    # data = recv_data.split(":")
-    # if data[0] == 'Sign in':
-    #     sign_in_service(data) 
-    # elif data[0] == 'Sign up':
-    #     sign_up_service(data)
-    # not done yet
-    #
+
+def close_connection(s):
+    print('closing connection to', addr_list[s.fileno()])
+    addr_list[s.fileno()] = ''
+    State_list[s.fileno()] = "Idle"     
+    sub_State_list[s.fileno()] = "Idle"
+    readset.remove(s)
+    s.close()
+
 
 
 def service_connection(s):
     # if client send a request. If the data of the request is none, close this client's fd
     data = s.recv(1024)
     if data:
-        do_service(s.fileno(), data)
+        do_service(s, data.decode())
     else:
-        print('closing connection to', addr_list[s.fileno()])
-        addr_list[s.fileno()] = ''
-        State_list[s.fileno()] = "Unuse"
-        sub_State_list[s.fileno()] = "Unuse"
-        readset.remove(s)
-        s.close()
+        close_connection(s)
 
 def Change_Port(PORT):
     for i in range(1, len(os.sys.argv)):
@@ -182,18 +209,23 @@ if __name__ == "__main__":
     
     PORT = Change_Port(PORT)
 
-    # Potential State_list = [ "", "Login Interface", "Sign in", "Sign up", "Choose person", "Communicating"]
-    # Potential sub_State_list = [ "", "Disconnected", "Enter Account", "Enter Password", "Enter Password again", "Receive Offline message", "Start talking"]
     # a fileno -> a state and a substate
     addr_list = []
 
+    # boolean for whether it is login
     Login_list = []
+    # Potential State_list = [ "Idle", "Sign in", "Sign up", "Check", "Communicate"]
     State_list = []
+    # Potential sub_State_list = [ "", "Disconnected"(?), "Enter Account", "Enter Password", "Enter Password again", "Receive Offline message", "Start talking"]
     sub_State_list = []
+    
     # these 2 lists are for the server to store msg
     # due to there will be 2 different pkg for the 2 msg
     tmp_acc = []
     tmp_pwd = []
+    
+    #logging_list = []
+
     for i in range(1500):
         addr_list.append('')
         tmp_acc.append('')
