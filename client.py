@@ -36,20 +36,20 @@ def serve(s):
         print(data)
         #print(data + '\n' + prefix, end='')
         print(prefix, end='')
-        data.split()
         sys.stdout.flush()
         if state == 'INITIAL' and 'Login successfully' in data:
             state = 'Login'
          #   data = data.split()
             account = data[2]
             prefix = account + " : "
-"""    if state == 'INITIAL':
-        if data.find("Password") > 0 or data.find("password") > 0:
-            inp = getpass.getpass('')
-        else:
-            inp = input('')
+        inp = ''
+        if state == 'INITIAL':
+            if data.find("Password") > 0 or data.find("password") > 0:
+                inp = getpass.getpass('')
+            else:
+                inp = input('')
         send_data = inp.encode()
-        s.send(send_data)"""
+        s.send(send_data)
 
 def communicate(s):
     global state
@@ -58,13 +58,12 @@ def communicate(s):
             inp = getpass.getpass('')
         else:
             inp = input('')
-        if inp == '':
+        if inp :
             print(prefix, end = '')
             sys.stdout.flush()
             return
         send_data = inp.encode()
         sock.send(send_data)
-
     elif state == 'Login':
         inp = input('')
         if inp == '':
@@ -98,7 +97,7 @@ else:
             #do_service(message)
             if s is sock:
                 serve(s)
-            else:
+            elif state != 'INITIAL':
                 communicate(s)
         if not readset:
             break
