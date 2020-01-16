@@ -28,13 +28,14 @@ def serve(s):
     data = s.recv(1024)
     data = data.decode()
     print(data)
+    #print(data + '\n' + prefix, end='')
+    print(prefix, end='')
+    sys.stdout.flush()
     if state == 'INITIAL' and 'Login successfully' in data:
         state = 'Login'
         data = data.split()
         account = data[2]
         prefix = account + " : "
-    #sys.stdin.flush()
-    print(prefix, end='')
 """    if state == 'INITIAL':
         if data.find("Password") > 0 or data.find("password") > 0:
             inp = getpass.getpass('')
@@ -50,11 +51,19 @@ def communicate(s):
             inp = getpass.getpass('')
         else:
             inp = input('')
+        if inp == '':
+            print(prefix, end = '')
+            sys.stdout.flush()
+            return
         send_data = inp.encode()
         sock.send(send_data)
 
     elif state == 'Login':
         inp = input('')
+        if inp == '':
+            print(prefix, end = '')
+            sys.stdout.flush()
+            return
         send_data = inp.encode()
         sock.send(send_data)
 
@@ -80,7 +89,7 @@ else:
         for s in readable:
             #message = input('please input command:')
             #do_service(message)
-            if s == sock:
+            if s is sock:
                 serve(s)
             else:
                 communicate(s)
