@@ -122,6 +122,7 @@ def Login_service(s, data):
     elif data == '(Exit)':
         send_data = "Back to login interface"
         send_data += interface_postfix
+        Account_list[fileno] = ""
         State_list[fileno] = "Idle"
         sub_State_list[fileno] = "Idle"
         s.send(send_data.encode())
