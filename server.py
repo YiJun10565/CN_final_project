@@ -74,13 +74,6 @@ def sign_up_service(s, data):
 def sign_in_service(s, data):
     fileno = s.fileno()
     #get the account and password from client sending
-    if data == '(Exit)':
-        send_data = "Back to login interface"
-        send_data += interface_postfix
-        State_list[fileno] = "Idle"
-        sub_State_list[fileno] = "Idle"
-        s.send(send_data.encode())
-        return
 
     #print("Sign in : ",sub_State_list[fileno] , "data = ", data)
     if sub_State_list[fileno] == "Enter Account":
@@ -126,6 +119,13 @@ def Login_service(s, data):
             send_data = "Login unknown command, please try again\n"
             send_data += "Enter 'Sign in' to sign in, 'Sign up' to sign up."
         s.send(send_data.encode())
+    elif data == '(Exit)':
+        send_data = "Back to login interface"
+        send_data += interface_postfix
+        State_list[fileno] = "Idle"
+        sub_State_list[fileno] = "Idle"
+        s.send(send_data.encode())
+        return
 
     elif(State_list[fileno] == "Sign in"):
         sign_in_service(s, data)        
