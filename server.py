@@ -23,7 +23,7 @@ def sign_up_service(fileno, data):
         if data in Account_Dict:
             send_data = "Account has already existed:"
         else:
-            acc_tmp[fileno] = data
+            tmp_acc[fileno] = data
             sub_State_list[fileno] = "Enter Password"
             send_data = "Please enter the password you want:"
 
@@ -36,9 +36,16 @@ def sign_up_service(fileno, data):
         if data == tmp_pwd[fileno]:
             encrypted_pwd = base64.b64encode(data.encode()).decode()
             Account_Dict.update( {tmp_acc[fileno]:encrypted_pwd})
-            send_data = ""
+            send_data = "Sign up Successfully" + tmp_acc[fileno]
+            with open('Account.csv', 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                # 對於每個key(英文單字),及words[key](中文)做寫入，其中兩者會被寫入到同一行
+                for key in Account_Dict:
+                    writer.writerow( [key, Account_Dict[key]] )
+            State_list[fileno] = "Login Interface"
+            sub_State_list[fileno] = ""
         else:
-            send_data = "Wrong\nPlease enter the password you want:"
+            send_data = "Wrong\nPlease enter the Account you want:"
             sub_State_list[fileno] = "Enter Account"
             tmp_pwd[fileno] = ""
             tmp_acc[fileno] = ""
@@ -75,8 +82,9 @@ def sign_in_service(fileno, data):
         
         # Back to login interface
         # Communicate_Exit(fileno)
-
+    print("Sign in : ",sub_State_list[fileno] , "data = ", data)
     if sub_State_list[fileno] == "Enter Account":
+        
         if data in Account_Dict:
             tmp_acc[fileno] = data
             sub_State_list[fileno] = "Enter Password"
@@ -199,12 +207,15 @@ if __name__ == "__main__":
             # Save accounts info into a local dictionary
             Account_Dict.update({row[0]: row[1]})
             # print(row)
-
+    
     #-------------------------------------
 
 
     print(f'the server is listening at {HOST}:{PORT}')
     print('waiting for connection...')
+
+    for acc in Account_Dict:
+        print(acc, Account_Dict[acc])
 
     while True:
         readable,writable,exceptionable = select.select(readset,writeset,exceptionset,0)
@@ -214,4 +225,4 @@ if __name__ == "__main__":
             else:           # server serve a client reqeust
                 service_connection(s)
 
-
+    
