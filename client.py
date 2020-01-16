@@ -41,19 +41,26 @@ def serve(s):
             account = data[2]
             prefix = account + " : "
         inp = ''
-        print(prefix, end = '')
-        sys.stdout.flush()
-
         if state == 'INITIAL':
             if data.find("Password") > 0 or data.find("password") > 0:
-                inp = getpass.getpass('')
+                while inp == '':
+                    print(prefix, end = '')
+                    sys.stdout.flush()
+                    inp = getpass.getpass('')
             else:
-                inp = input('')
+                while inp == '':
+                    print(prefix, end = '')
+                    sys.stdout.flush()
+                    inp = input('')
             send_data = inp.encode()
             s.send(send_data) 
+        elif state == 'Login':
+            print(prefix, end = '')
+            sys.stdout.flush()
+
 def communicate(s):
     global state
-    if state == 'INITIAL':
+    """if state == 'INITIAL':
         if data.find("Password") > 0 or data.find("password") > 0:
             inp = getpass.getpass('')
         else:
@@ -63,8 +70,8 @@ def communicate(s):
             sys.stdout.flush()
             return
         send_data = inp.encode()
-        sock.send(send_data)
-    elif state == 'Login':
+        sock.send(send_data)"""
+    if state == 'Login':
         inp = input('')
         if inp == '':
             print(prefix, end = '')
