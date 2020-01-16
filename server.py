@@ -8,7 +8,7 @@ import csv
 # string
 # -------------
 
-interface_postfix = "\n Enter 'Sign in' to sign in, 'Sign up' to sign up"
+interface_postfix = "\nEnter 'Sign in' to sign in, 'Sign up' to sign up"
 exit_postfix = "\nYou can enter '(Exit)' to exit whenever you want."
 
 # -------------
@@ -20,6 +20,7 @@ def accept_wrapper(s):
     conn.setblocking(False)
     addr_list[conn.fileno()] = addr
     State_list[conn.fileno()] = "Idle"
+    sub_State_list[conn.fileno()] = "Idle"
     readset.append(conn)
     send_data = "Connected to the server"
     send_data += interface_postfix
@@ -40,20 +41,20 @@ def sign_up_service(fileno, data):
             if data in Account_Dict:
                 send_data = "Account has already existed:"
             else:
-                tmp_acc[fileno] = data
+                Account_list[fileno] = data
                 sub_State_list[fileno] = "Enter Password"
                 send_data = "Please enter the password you want:"
 
     elif(sub_State_list[fileno] == "Enter Password"):
-        tmp_pwd[fileno] = data
+        Password_list[fileno] = data
         send_data = "Please enter the password again:"
         sub_State_list[fileno] = "Enter Password again"
     
     elif(sub_State_list[fileno] == "Enter Password again"):
-        if data == tmp_pwd[fileno]:
+        if data == Password_list[fileno]:
             encrypted_pwd = base64.b64encode(data.encode()).decode()
-            Account_Dict.update( {tmp_acc[fileno]:encrypted_pwd})
-            send_data = "Sign up Successfully" + tmp_acc[fileno]
+            Account_Dict.update( {Account_list[fileno]:encrypted_pwd})
+            send_data = "Sign up Successfully" + Account_list[fileno]
             with open('Account.csv', 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 for key in Account_Dict:
@@ -63,8 +64,8 @@ def sign_up_service(fileno, data):
         else:
             send_data = "Wrong\nPlease enter the Account you want:"
             sub_State_list[fileno] = "Enter Account"
-            tmp_pwd[fileno] = ""
-            tmp_acc[fileno] = ""
+            Account_list[fileno] = ""
+            Password_list[fileno] = ""
     else :
         print("sign up error")
     s.send(send_data.encode())
@@ -81,19 +82,19 @@ def sign_in_service(fileno, data):
     #print("Sign in : ",sub_State_list[fileno] , "data = ", data)
     if sub_State_list[fileno] == "Enter Account":
         if data in Account_Dict:
-            tmp_acc[fileno] = data
+            Account_list[fileno] = data
             sub_State_list[fileno] = "Enter Password"
             send_data = "Enter Password:"
         else:
             send_data = "Account not exists, please enter a valid account"
 
     elif sub_State_list[fileno] == "Enter Password":
-        if base64.b64encode(data.encode()).decode() == Account_Dict[tmp_acc[fileno]] :
-            send_data = "Login successfully " + tmp_acc[fileno]
-            #logging_list.append( tmp_acc[fileno] )
+        if base64.b64encode(data.encode()).decode() == Account_Dict[Account_list[fileno]] :
+            send_data = "Login successfully " + Account_list[fileno]
+            #logging_list.append( Account_list[fileno] )
             Login_list[fileno] = True
             State_list[fileno] = "Idle"
-            sub_State_list[fileno] = ""
+            sub_State_list[fileno] = "Idle"
         else :
             send_data = "Wrong password, please enter again."
     else :
@@ -129,11 +130,16 @@ def Login_service(s, data):
     else:
         print("Unknown state when loging")
 
-def Check(fileno, account):
-    send_data = ""
+def Check(s, account):
+    fileno = s.fileno()
+    State_list[fileno] = "Idle"
+    send_data = account + " is not online"
     if account not in Account_Dict:
-        send_data = "Not existing account"
-    #elif 
+        send_data = account + " is not a existing account"
+    for i in range(len(Account_list)):
+        if Account_list[i] == account and logging_list[i] = True:
+            send_data = account + " is online"
+    s.send(send_data)
 
 def After_Login_service(s, data):
     fileno = s.fileno()
@@ -154,9 +160,11 @@ def After_Login_service(s, data):
             Login_list[fileno] = false
             State_list[fileno] = "Idle"
             sub_State_list[fileno] = "Idle"
-
+        else:
+            send_data = "Unknown command, please enter again"
+        s.send(send_data)
     elif(State_list[fileno] == "Check"):
-        Check(fileno, data)
+        Check(s, data)
     #elif(State_list[fileno] == "Commnicate"):
     #    Communicate(fileno, data)
     #elif(State_list[fileno] == "Send file"):
@@ -221,15 +229,15 @@ if __name__ == "__main__":
     
     # these 2 lists are for the server to store msg
     # due to there will be 2 different pkg for the 2 msg
-    tmp_acc = []
-    tmp_pwd = []
+    Account_list = []
+    password_list = []
     
     #logging_list = []
 
     for i in range(1500):
         addr_list.append('')
-        tmp_acc.append('')
-        tmp_pwd.append('')
+        Account_list.append('')
+        password_list.append('')
         Login_list.append(False)
         State_list.append('Idle')
         sub_State_list.append('Idle')
@@ -244,7 +252,6 @@ if __name__ == "__main__":
     exceptionset = []
     server.setblocking(False)
 
-    
     Account_Dict = {}
     # read Account file in csv 
     with open("./Account.csv", newline='') as csvfile:
@@ -256,7 +263,6 @@ if __name__ == "__main__":
             # print(row)
     
     #-------------------------------------
-
 
     print(f'the server is listening at {HOST}:{PORT}')
     print('waiting for connection...')
