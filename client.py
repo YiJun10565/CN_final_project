@@ -10,6 +10,7 @@ state = 'INITIAL'
 account = ''
 PORT = 0
 def Handling_argv():
+    global PORT
     for i in range(1, len(os.sys.argv)):
         if(os.sys.argv[i] == '-p'):
             if(i == len(os.sys.argv) - 1):
