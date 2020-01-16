@@ -60,13 +60,13 @@ def serve(s):
     data = s.recv(1024)
     data = data.decode()
     print(data)
-    if 'Login successfully' in data:
+    if state == 'INITIAL' and 'Login successfully' in data:
         state = 'Login'
         data = data.split(" ")
         account = data[2] + " : "
     sys.stdin.flush()
     if state == 'INITIAL':
-        if 'Password' in data:
+        if 'password' in data:
             inp = getpass.getpass('')
         else:
             inp = input('')
@@ -86,8 +86,6 @@ writeset = []
 exceptionset = []
 #check the connection whehter success
 if sock.connect_ex(server_addr) != 0:
-    fail = True 
-if fail == True:
     print('Failed to connect')
 else:
     print('Success connect!')
