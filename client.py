@@ -3,10 +3,19 @@ import select
 import sys
 import getpass
 import types
-
+import os
+fail = ''
 #control the client status for command uses
 state = 'INITIAL'
 account = ''
+PORT = 0
+def Handling_argv():
+    for i in range(1, len(os.sys.argv)):
+        if(os.sys.argv[i] == '-p'):
+            if(i == len(os.sys.argv) - 1):
+                print('-p can\'t be the last argv') 
+            else:
+                PORT = int(os.sys.argv[i+1])
 def do_service(message):
     global state #get global variable state
     
@@ -67,11 +76,11 @@ def serve(s):
 
 HOST = socket.gethostbyname(socket.gethostname())
 PORT = 1234
-
+Handling_argv()
 server_addr = (HOST, PORT)
 print('starting connection to', server_addr)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-readset = [socket]
+readset = [sock]
 writeset = []
 exceptionset = []
 #check the connection whehter success
