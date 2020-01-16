@@ -159,6 +159,16 @@ def After_Login_service(s, data):
         elif(data == "Send file"):
             send_data = "Please enter the account you want to send file to"
             State_list[fileno] = "Sendfile"
+        elif(data == "List"):
+            send_data = ""
+            for i in range(len(Account_list)):
+                if Login_list[i] == True and i != fileno:
+                    send_data += Account_list[i] + " is online.\n"
+            if send_data == "":
+                send_data = "Only you are online."
+            else:
+                send_data = send_data[:-1]
+
         elif(data == "(Exit)"):
             send_data = "Back to login interface"
             Login_list[fileno] = False
@@ -250,14 +260,18 @@ if __name__ == "__main__":
     # these 2 lists are for the server to store msg
     # due to there will be 2 different pkg for the 2 msg
     Account_list = []
-    password_list = []
+    Password_list = []
+    for i in range(len(Account_list)):
+        if Account_list[i] == account and Login_list[i] == True:
+            send_data = account + " is online"
+    s.send(send_data.encode())
     
     #logging_list = []
 
     for i in range(1500):
         addr_list.append('')
         Account_list.append('')
-        password_list.append('')
+        Password_list.append('')
         Login_list.append(False)
         State_list.append('Idle')
         sub_State_list.append('Idle')
