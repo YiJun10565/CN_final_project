@@ -35,22 +35,22 @@ def serve(s):
         data = data.decode()
         print(data)
         #print(data + '\n' + prefix, end='')
-        print(prefix, end='')
-        sys.stdout.flush()
         if state == 'INITIAL' and 'Login successfully' in data:
             state = 'Login'
-         #   data = data.split()
+            data = data.split()
             account = data[2]
             prefix = account + " : "
         inp = ''
+        print(prefix, end = '')
+        sys.stdout.flush()
+
         if state == 'INITIAL':
             if data.find("Password") > 0 or data.find("password") > 0:
                 inp = getpass.getpass('')
             else:
                 inp = input('')
-        send_data = inp.encode()
-        s.send(send_data)
-
+            send_data = inp.encode()
+            s.send(send_data) 
 def communicate(s):
     global state
     if state == 'INITIAL':
