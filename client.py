@@ -26,16 +26,22 @@ def serve(s):
     global writeset
     global data
     data = s.recv(1024)
-    data = data.decode()
-    print(data)
-    #print(data + '\n' + prefix, end='')
-    print(prefix, end='')
-    sys.stdout.flush()
-    if state == 'INITIAL' and 'Login successfully' in data:
-        state = 'Login'
-        data = data.split()
-        account = data[2]
-        prefix = account + " : "
+    if not data:
+        print('closing connection')
+        readset.remove(sock)
+        sock.close()
+        readset.remove(sys.stdin)
+    else:
+        data = data.decode()
+        print(data)
+        #print(data + '\n' + prefix, end='')
+        print(prefix, end='')
+        sys.stdout.flush()
+        if state == 'INITIAL' and 'Login successfully' in data:
+            state = 'Login'
+            data = data.split()
+            account = data[2]
+            prefix = account + " : "
 """    if state == 'INITIAL':
         if data.find("Password") > 0 or data.find("password") > 0:
             inp = getpass.getpass('')
