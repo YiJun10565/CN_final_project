@@ -19,6 +19,7 @@ Enter_pwd_again_state = "Enter Password again"
 
 repeat_login_state = "Repeat Login"
 Chat_state = "Chat"
+Team_Chat_state = "Team Chat"
 Check_state = "Check"
 Offline_Chat_state = "Offline Chat"
 Online_Chat_state = "Online Chat"
@@ -86,7 +87,6 @@ def accept_wrapper(s_server):
     #only deal with accept client
     conn, addr = s_server.accept()
     print('accept connection from', addr)
-
     ID = conn.fileno()
 
     clients[ID].build_Connection(conn, addr)
@@ -382,6 +382,58 @@ def transfer_Files(s_sender, s_receiver, filenames):
         s_receiver.sendall(struct.pack('i', size))
         s_receiver.sendall(content)
 
+def Create_Team(ID, Team_name):
+    filename = Team_name + ".teamlog"
+    open(filename, "w").close()
+    filename = Team_name + ".teamset"
+    with open(filename, "w") as teamsetfile:
+        teamsetfile.write(str(0000) + "\n")
+        teamsetfile.write(clients[ID].account + "\n")
+
+def get_Team_password(Team_name):
+    filename = Team_name + ".teamset"
+    pwd = ""
+    with open(filename, "r") as teamsetfile:
+        pwd = teamsetfile.readline()
+    return pwd
+
+def Start_Team_Chat(ID):
+    clients[ID].substate = "chat"
+    clients[ID].friend_history_data = []
+    filename = clients[ID].friend_account + ".teamlog"
+    if os.path.isfile(filename):
+        with open(filename, 'r+') as CH:
+            for i, line in enumerate(CH.readlines()):
+                clients[ID].friend_history_data.append(line)
+        
+        send_data = ""
+        for line in clients[ID].friend_history_data:
+            send_data += line
+        send_data = send_data[:-1]
+        print(send_data)
+        clients[ID].socket.sendall(send_data.encode())
+
+def Team_Chat(ID):
+    if data == "(Exit)":
+        clients[ID].Log_in()
+        return
+    
+    chat_line = clients[ID].account + ": " + data
+    clients[ID].friend_history_data.append([clients[ID].account, data])
+    
+    for i, client in enumerate(clients):
+        if client.login \
+            and client.state == Team_Chat_state \
+            and client.substate == "chat" \
+            and client.friend_account == clients[ID].friend_account:
+
+            client.friend_history_data.append([clients[ID].account, data])
+            client.socket.sendall(chat_line.encode())        
+
+    filename = clients[ID].friend_account + ".teamlog"
+    with open(filename, 'a+') as CH:
+        CH.write(chat_line + "\n")
+
 def Home_service(ID, rawdata):
     print("Home_service")
 
@@ -427,7 +479,29 @@ def Home_service(ID, rawdata):
 
             Check_for_Chat_service(ID, friend_account)
 
-        
+        elif data[0] == "Team":
+            if len(data) == 3 and data[1] == "Chat":
+                clients[ID].state = Team_Chat_state
+                Team_name = data[2]
+                clients[ID].friend_account = Team_name
+                filename = Team_name + ".teamlog"
+                if not os.path.isfile(filename):
+                    Create_Team(ID, Team_name)
+                password = str(0000)
+                in_Team_flag = False
+                with open(filename, "r") as teamsetfile:
+                    lines = teamsetfile.readlines()
+                    password = lines[0]
+                    accounts = lines[1:]
+                    if clients[ID].account in lines:
+                        in_Team_flag = True
+                if in_Team_flag == False:
+                    clients[ID].substate = "Enter Team Password"
+                    send_data = "Please enter password to join the team"
+                    clients[ID].socket.sendall(send_data.encode())
+                else :
+                    Start_Team_Chat(ID)
+
         elif data[0] == "(Exit)":
             clients[ID].Log_out()
             clients[ID].socket.sendall("Logged out.".encode())
@@ -471,6 +545,20 @@ def Home_service(ID, rawdata):
 
     elif clients[ID].state == Receive_state:
         receive_File(ID)
+
+    elif clients[ID].state == Team_Chat_state:
+        if clients[ID].substate == "Enter Team Password":
+            if data == "(Exit)":
+                clients[ID].Log_in()
+                return 
+            if get_Team_password(clients[ID].friend_account) == data:
+                filename = Team_name + ".teamset"
+                with open(filename, "a") as teamsetfile:
+                    teamsetfile.write(clients[ID].account + "\n")
+                Start_Team_Chat(ID)
+                  
+        elif clients[ID].substate == "chat":
+            Team_Chat(ID, data)
 
     else:
         print("Unknown State, Maybe a bug or undone > <")
