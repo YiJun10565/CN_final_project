@@ -19,343 +19,391 @@ Enter_pwd_again_state = "Enter Password again"
 
 Chat_state = "Chat"
 Check_state = "Check"
+Offline_Chat_state = "Offline Chat"
+Online_Chat_state = "Online Chat"
 
 # -------------
 
-def accept_wrapper(s):
+class Client:
+    def __init__(self):
+        self.socket = None
+        self.address = ""
+        self.login = False
+        self.state = Idle_state
+        self.sub_state = Idle_state
+        self.account = ""
+        self.password = ""
+        self.friend_account = ""
+        self.friend_ID = -1
+        self.friend_history_data = []
+
+    def build_Connection(self, socket, address):
+        self.socket = socket
+        self.address = address
+
+    def close_Connection():
+        self.socket.close()
+        self.address = ""
+
+    def Log_out():
+        self.login = False
+        self.state = Idle_state
+        self.substate = Idle_state
+        self.account = ""
+        self.password = ""
+        self.friend_account = ""
+        self.friend_ID = -1
+        self.friend_history_data = []
+
+    def start_Chat(self, sub_state):
+        self.substate = sub_state
+
+    def print_State(self):
+        print("--- print state ----")
+        print("fileno    =", ID)
+        print("Account   =", clients[ID].account)
+        print("Log in?    ", clients[ID].login)
+        print("State     =", clients[ID].state)
+        print("sub State =", clients[ID].substate)
+        print("-------------------")
+
+def accept_wrapper(s_server):
     #only deal with accept client
-    conn, addr = s.accept()
+    conn, addr = s_server.accept()
     print('accept connection from', addr)
-    conn.setblocking(False)
-    Socket_list[conn.fileno()] = conn
-    addr_list[conn.fileno()] = addr
-    State_list[conn.fileno()] = Idle_state
-    sub_State_list[conn.fileno()] = Idle_state
-    readset.append(conn)
-    send_data = "Connected to the server"
-    send_data += interface_postfix
-    conn.send( send_data.encode())
 
+    ID = conn.fileno()
 
-def sign_up_service(s, data):
-    fileno = s.fileno()
+    clients[ID].build_Connection(conn, addr)
+    clients[ID].socket.setblocking(False)
+
+    readset.append(clients[ID].socket)
+
+    send_data = "Connected to the server" + interface_postfix
+    clients[ID].socket.send(send_data.encode())
+
+def sign_up_service(ID, data):
     #get the account and password from client sending
-    if(sub_State_list[fileno] == Enter_acc_state):
-        invalid_name = 0
+    if(clients[ID].substate == Enter_acc_state):
+        invalid_name = False
         for x in data:
             if not x.isdigit() and not x.isalpha():
-                invalid_name = 1
+                invalid_name = True
                 break
+
         if invalid_name:
             send_data = "Invalid account, please enter a valid one (only contains 0~9, a~z, A~Z)"
         else:
             if data in Account_Dict:
                 send_data = "Account has already existed:"
             else:
-                Account_list[fileno] = data
-                sub_State_list[fileno] = Enter_pwd_state
+                clients[ID].account = data
+                clients[ID].substate = Enter_pwd_state
                 send_data = "Please enter the password you want:"
 
-    elif(sub_State_list[fileno] == Enter_pwd_state):
-        Password_list[fileno] = data
-        send_data = "Please enter the password again:"
-        sub_State_list[fileno] = Enter_pwd_again_state
+    elif clients[ID].substate == Enter_pwd_state:
+        if data == "(Exit)":
+            clients[ID].Log_out()
+            send_data = "(Exit)"
+        else:
+            clients[ID].substate = data
+            send_data = "Please enter the password again:"
+            clients[ID].substate = Enter_pwd_again_state
     
-    elif(sub_State_list[fileno] == Enter_pwd_again_state):
-        if data == Password_list[fileno]:
+    elif(clients[ID].substate == Enter_pwd_again_state):
+        if data == clients[ID].password:
             encrypted_pwd = base64.b64encode(data.encode()).decode()
-            Account_Dict.update( {Account_list[fileno]:encrypted_pwd})
-            send_data = "Sign up Successfully " + Account_list[fileno]
-            with open('Account.csv', 'w', newline='') as csvfile:
+            newAccount = {clients[ID].account : encrypted_pwd}
+            Account_Dict.update(newAccount)
+
+            send_data = "Sign up Successfully " + clients[ID].account
+
+            with open('Account.csv', 'a', newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                for key in Account_Dict:
-                    writer.writerow( [key, Account_Dict[key]] )
-            State_list[fileno] = Idle_state
-            sub_State_list[fileno] = ""
+                writer.writerow([clients[ID].account, encrypted_pwd])
+
+            clients[ID].password = encrypted_pwd
+            clients[ID].state = Idle_state
+            clients[ID].substate = Idle_state
         else:
             send_data = "Wrong\nPlease enter the Account you want:"
-            sub_State_list[fileno] = Enter_acc_state
-            Account_list[fileno] = ""
-            Password_list[fileno] = ""
-    else :
+            clients[ID].substate = Enter_acc_state
+            clients[ID].account = ""
+            clients[ID].password = ""
+    else:
         print("sign up error")
-    s.send(send_data.encode())
+    
+    clients[ID].socket.sendall(send_data.encode())
 
-def sign_in_service(s, data):
-    fileno = s.fileno()
-    #get the account and password from client sending
-
-    #print("Sign in : ",sub_State_list[fileno] , "data = ", data)
-    if sub_State_list[fileno] == Enter_acc_state:
+def sign_in_service(ID, data):
+    if clients[ID].substate == Enter_acc_state:
         if data in Account_Dict:
-            Account_list[fileno] = data
-            sub_State_list[fileno] = Enter_pwd_state
+            clients[ID].account = data
+            clients[ID].substate = Enter_pwd_state
             send_data = "Enter Password:"
         else:
             send_data = "Account not exists, please enter a valid account"
 
-    elif sub_State_list[fileno] == Enter_pwd_state:
-        if base64.b64encode(data.encode()).decode() == Account_Dict[Account_list[fileno]] :
+    elif clients[ID].substate == Enter_pwd_state:
+        if base64.b64encode(data.encode()).decode() == Account_Dict[clients[ID].account] :
             print("Login successfully")
-            send_data = "Login successfully " + Account_list[fileno]
+            send_data = "Login successfully, " + clients[ID].account
             #logging_list.append( Account_list[fileno] )
-            Login_list[fileno] = True
-            State_list[fileno] = Idle_state
-            sub_State_list[fileno] = Idle_state
+            clients[ID].login = True
+            clients[ID].state = Idle_state
+            clients[ID].substate = Idle_state
         else :
             print("Login fail")
             send_data = "Wrong password, please enter again."
-    else :
+    else:
         print("sign in error")
+
     send_data += exit_postfix
-    s.send(send_data.encode())
+    clients[ID].socket.send(send_data.encode())
     
-def Login_service(s, data):
-    fileno = s.fileno()
-    if(State_list[fileno] == Idle_state):        
-        send_data = "Login unknown command, please try again\n"
-        send_data += "Enter 'Sign in' to sign in, 'Sign up' to sign up."
+def Login_service(ID, rawdata):
+    data = rawdata.decode()
+    if clients[ID].state == Idle_state:        
+        send_data = "Unknown command, please try again"
+        send_data += "\nEnter 'Sign in' to sign in, 'Sign up' to sign up."
         if(data == "Sign in"):
             send_data = "Please enter your account:"
-            State_list[fileno] = Sign_in_state
-            sub_State_list[fileno] = Enter_acc_state
+            clients[ID].state = Sign_in_state
+            clients[ID].substate = Enter_acc_state
         elif(data == "Sign up"):
             send_data = "Please enter the account you want:"
-            State_list[fileno] = Sign_up_state
-            sub_State_list[fileno] = Enter_acc_state
+            clients[ID].state = Sign_up_state
+            clients[ID].substate = Enter_acc_state
         elif(data == "(Exit)"):
-            close_connection(s)
+            send_data = "Byebye~~"
+            clients[ID].socket.sendall(send_data)
+            close_connection(clients[ID].socket)
             return
-        s.send(send_data.encode())
 
     elif data == '(Exit)':
-        send_data = Back_to_login_interface(fileno)
-        s.send(send_data.encode())
-        return
-
-    elif(State_list[fileno] == Sign_in_state):
-        sign_in_service(s, data)        
-    elif(State_list[fileno] == Sign_up_state):
-        sign_up_service(s, data)
+        send_data = "Back to login interface"
+        clients[ID].Log_out()
+    elif clients[ID].state == Sign_in_state:
+        send_data = sign_in_service(ID, data)        
+    elif clients[ID].state == Sign_up_state:
+        send_data = sign_up_service(ID, data)
     else:
+        send_data = "Back to login interface"
+        clients[ID].Log_out()
         print("Unknown state when loging")
 
-def Check(s, account):
-    fileno = s.fileno()
-    send_data = account + " is not online"
-    if account not in Account_Dict:
-        send_data = account + " is not a existing account"
-    for i in range(len(Account_list)):
-        if Account_list[i] == account and Login_list[i] == True:
-            send_data = account + " is online"
-    return send_data
+    clients[ID].socket.sendall(send_data.encode())
 
-def List(fileno):
+def check_Account_Status(account):
+    if account not in Account_Dict:
+        return -1
+    for i, client in enumerate(clients):
+        if client.account == account and client.Login == True:
+            return i
+    return 0
+
+def find_Filename(ID):
+    A = client[ID].account
+    B = client[ID].friend_account
+    filename = ""
+    if A < B:
+        filename = A + '_' + B + ".log"
+    else:
+        filename = B + '_' + A + ".log"
+
+    return filename
+
+def load_History_Data(ID):
+    clients[ID].friend_history_data = []
+
+    filename = find_Filename(ID)
+
+    if isexist(filename):
+        with open(filename, 'r+') as CH:
+            for i, line in enumerate(CH.readlines()):
+                line = line.strip()
+                clients[ID].friend_history_data.append([])
+                cut = line.find(":")
+                clients[ID].friend_history_data.append(line[:cut])
+                clients[ID].friend_history_data.append(line[cut+1:])
+
+def start_Offline_Chat(ID):
+    load_History_Data(ID)
+    clients[ID].start_Chat(Offline_Chat_state)
+
+def start_Online_Chat(ID):
+    load_History_Data(ID)
+    clients[ID].start_Chat(Online_Chat_state)
+    clients[clients[ID].friend_ID].start_Chat(Online_Chat_state)
+
+    send_data = "*** " + clients[ID].account + " has entered the room!! ***"
+    clients[clients[ID].friend_ID].socket.sendall(send_data.encode())
+
+def getID(account):
+    for i, client in enumerate(clients):
+        if client.account == account:
+            return i
+    return -1
+
+def Help_service(ID):
+    send_data =  "-------Help--------"
+    send_data += "\ncommand:"
+    send_data += "\nCheck [account]"
+    send_data += "\nChat [account]"
+    send_data += "\nlist Online Account"
+    send_data += "\nSendFile [account] [file1] [file2] ..."
+    send_data += "\n(Exit)"
+    send_data += "\n--------------------"
+
+    clients[ID].socket.sendall(send_data.encode())
+
+def Check_service(ID, friend_account):
+    acc_stat = check_Account_Status(account)
+    if acc_stat > 0:
+        send_data = friend_account + " is online."
+    elif acc_stat == 0:
+        send_data = friend_account + " is offline."
+    else:
+        send_data = friend_account + " not exists."
+
+    clients[ID].socket.sendall(send_data.encode())
+
+def list_Online_Account_service(ID):
     send_data = ""
-    for i in range(len(Account_list)):
-        if Login_list[i] == True and i != fileno:
-            send_data += Account_list[i] + " is online.\n"
+    for i, client in enumerate(clients):
+        if client.Login == True and i != ID:
+            send_data += client.account + " is online.\n"
     if send_data == "":
         send_data = "Only you are online."
     else:
         send_data = send_data[:-1]
-    return send_data
 
-# A's socket wanna talk to B
-# filenoA is A's fileno
-# A, B are there account
-def Start_Offline_Chat(filenoA, B):
-    A = Account_list[filenoA]
-    filename = ""
-    if A < B:
-        filename = A + B + ".log"
-    else:
-        filename = B + A + ".log"
-    Chat_History[fileno] = []
-    try :
-        Wf_list[filenoA] = open( filename, "r")
-        Chat_History[filenoA] = []
-        for i, line in enumerate(Wf_list[filenoA].readlines()):
-            line = line.strip()
-            Chat_History[filenoA] = ([])
-            cut = line.find(":")
-            Chat_History[filenoA][i].append(line[:cut])
-            Chat_History[filenoA][i].append(line[cut+1:])
-    except :
-        Wf_list[filenoA] = open( filename, "w")
+    clients[ID].socket.sendall(send_data.encode())
+
+def Chat(ID, data):
+    chat_line = clients[ID].account + ": " + data + "\n"
+
+    clients[ID].friend_history_data.append([clients[ID].account, data])
+    if clients[ID].substate == Online_Chat_state:
+        clients[clients[ID].friend_ID].friend_history_data.append([clients[ID].account, data])
+        clients[clients[ID].friend_ID].socket.sendall(chat_line.encode())
+
+    filename = find_Filename(ID)
+    with open(filename, 'a+') as CH:
+        CH.write(chat_line)
+
+
+
+def Check_for_Chat_service(ID, friend_account):
+    acc_stat = check_Account_Status(friend_account)
+
+    if acc_stat == -1: 
+        send_data = friend_account + " is not an existing account."
+
+    elif acc_stat == ID:
+        send_data = "Though you're a outsider, you still can't talk to yourself!"
+
+    elif acc_stat == 0:
+        clients[ID].friend_account = friend_account
+        clients[ID].friend_ID = getID(friend_account)
+        start_Offline_Chat(ID)
+
+    else: # friend is online
+        friend_ID = acc_stat
+
+        clients[ID].friend_account = friend_account
+        clients[ID].friend_ID = friend_ID
         
-'''
-def Chat(s, data):
-    fileno = s.fileno()
-    if data == "(Exit)":
-    # leaving
-        send_data = "(Exit)" + "Back to menu"
-        State_list[fileno] = Idle_state
-        sub_State_list[fileno] = Idle_state
-    # tell the other that this one is leaving
-    # Change to offline Chat 
-    if(sub_State_list[fileno] == "Offline Chat"):
-        
-    elif(sub_State_list[fileno] == "Online Chat"):
-        
-    else:
-        print("Unknown State while chatting, Back to Idle State")
-        State_list[fileno] = Idle_state
-        sub_State_list[fileno] = Idle_state
-'''     
+        # inform chat 
 
-# def log_offline_data(fileno, accountB):
-    
+        if clients[friend_ID].state == Chat_State \
+            and clients[friend_ID].substate == "Offline Chat" \
+            and clients[friend_ID].friend_ID == ID:
+            start_Online_Chat(ID)
 
+        else:
+            clients[ID].socket.sendall("Start Offline Chat...".encode())
+            Start_Offline_chat(ID)
 
+def Home_service(ID, rawdata):
+    data = data.decode()
 
-def After_Login_service(s, data):
-    fileno = s.fileno()
-    if(State_list[fileno] == Idle_state):
+    if(clients[ID].state == Idle_state):
         data = data.split()
-        sub_State_list[fileno] = Idle_state
-        if(data[0] == "Help"):
-            send_data =  "-------Help--------"
-            send_data += "\ncommand:"
-            send_data += "\nCheck [account]"
-            send_data += "\nChat [account]"
-            send_data += "\nList"
-            send_data += "\nSendFile [account] [file1] [file2] ..."
-            send_data += "\n(Exit)"
-            send_data += "\n--------------------"
 
-        elif(data[0] == "Check"):
-            if(len(data) != 2) : send_data = "Please enter as the following type:\nCheck [account]"
-            else : send_data = Check(s, data[1])
+        if data[0] == "Help" :
+            Help_service(ID)
 
-        elif(data[0] == "List"):
-            if(len(data) != 1) : send_data = "Please enter as the following type:\nList"
-            send_data = List(fileno)
+        elif data[0] == "Check" :
+            if len(data) != 2: 
+                send_data = "Please enter as the following type:\nCheck [account]"
+                clients[ID].socket.sendall(send_data.encode())
+                return
 
-        elif(data[0] == "Chat"):
-            chat_object = data[1]
-            if(len(data) != 2) : 
+            Check_service(ID, data[1])
+
+        elif data[0] == "list Online Account":
+            list_Online_Account_service(ID)
+
+        elif data[0] == "Chat":
+            friend_account = data[1]
+            if len(data) != 2: 
                 send_data = "Please enter as the following type:\nChat [account]"
-            elif chat_object not in Account_Dict : 
-                send_data = data[1] + " is not an existing account"
-            elif chat_object == Account_list[fileno]:
-                send_data = "Though you're a outsider, you still can't talk to yourself!"
-            else:
-                log_offline_data(fileno, chat_object)
-                State_list[fileno] = Chat_state
-                Chat_object_list[fileno] = account
-                # Check if online
-                online_flag = False
-                send_data = ""
-                for i in range(len(Account_list)):
-                    if Account_list[i] == chat_object and Login_list[i] == True:
-                        Chat_object_fileno_list[fileno] = i
-                        online_flag = True
-                        break
-                #     if online, ask B if he wants to chat
-                if online_flag:
-                #   if B is communicating through offline chat
-                #   -> online chat for them
-                    filenoB = Chat_object_fileno_list[fileno]
-                    if State_list[filenoB] == Chat_State and sub_State_list[filenoB] == "Offline Chat" and Chat_object_list[filenoB] == Account_list[fileno]:
-                        Start_Online_chat( fileno, filenoB)
-                        sub_State_list[fileno] = "Online Chat"
-                    # asking 
-                    else:
-                        send_data = "Asking " + account + " if he/she wants to chat with you ..."
-                        send_data += "\nYou can still sent send messages as you want"
-                        sub_State_list[fileno] = "Offline Chat"
-                        Start_Offline_chat(Account_list[fileno], account)
-                #         yes: online chat
-                #         no : offline chat
-                #     else offline chat
-                else :
-                    send_data = account + " is not online\nStart offline chatting"
-                    sub_State_list[fileno] = "Offline Chat"
-                    Start_Offline_chat(Account_list[fileno], account)
-                
+                clients[ID].socket.sendall(send_data)
+                return
 
-            
+            Check_for_Chat_service(ID, friend_account)
 
-        elif(data[0] == "SendFile"):
-            send_file_object = data[1]
-            if( len(data) <= 2 ) send_data = "Please enter as the following type:\nSendFile [account] [file1] [file2] ..."
-            elif send_file_object not in Account_Dict : 
-                send_data = data[1] + " is not an existing account"
-            elif send_file_object == Account_list[fileno]:
-                send_data = "Though you're a outsider, you still can't send a file to yourself!"
-            # check if online
-            online_flag = False
-            send_data = "NAK"
-            for i in range(len(Account_list)):
-                if Account_list[i] == send_file_object and Login_list[i] == True:
-                    online_flag = True
-                    Chat_object_fileno_list[fileno] = i
-                    Chat_object_list[fileno] = send_file_object
-                    send_data = "ACK"
-                    break
-            if online_flag:
-                Transfer_file_list = data[2:]
-                Chat_object_list[fileno] = send_file_object
-                State_list[fileno] = "Sendfile"
-                Transfer_file(Socket_list[fileno], Socket_list[Chat_object_fileno_list[fileno]], Transfer_file_list)
         
-        elif(data[0] == "(Exit)"):
-            send_data = Back_to_login_interface(fileno)
+        elif data[0] == "(Exit)":
+            clients[ID].Log_out()
+            send_data = "Logged out."
+            clients[ID].socket.sendall(send_data.encode())
+
+        
+        
+
         else:
             send_data = "Unknown command, please enter again"
-        s.send(send_data.encode())
-    elif(State_list[fileno] == Chat_state):
-        Chat(fileno, data)
-    else:
-        print("Unknown State, Maybe a bug or undone")
-        Back_to_login_interface(fileno)
         
 
-def do_service(s, recv_data):
-    if(Login_list[s.fileno()] == False):
+
+
+
+    elif clients[ID].state == Chat_state:
+        Chat(ID)
+
+    elif clients[ID].state == Receive_state:
+        Receive(ID)
+
+    else:
+        print("Unknown State, Maybe a bug or undone")
+        clients[ID].Log_out()
+        
+
+def do_service(ID, rawdata):
+    if clients[ID].login == False:
         print("Login_service")
-        Login_service(s, recv_data)
+        Login_service(ID, rawdata)
     else:
-        print("After Login service")
-        After_Login_service(s, recv_data)
-    Print_State(s.fileno())
+        print("Home_service")
+        Home_service(ID, rawdata)
 
+    clients[ID].print_State()
 
-def close_connection(s):
-    fileno = s.fileno()
-    print('closing connection to', addr_list[s.fileno()])
-    addr_list[fileno] = ''
-    Chat_object_fileno_list[fileno] = -1
-    try:
-        Wf_list[fileno].close()
-    except:
-        pass
-    Wf_list[fileno] = None
-    Login_list[fileno] = False
-    State_list[fileno] = Idle_state     
-    sub_State_list[fileno] = Idle_state
-    readset.remove(s)
-    s.close()
+def close_connection(ID):
+    print('closing connection to', clients[ID].address)
+    
+    readset.remove(clients[ID].socket)
+    clients[ID].close_connection()
 
-def Back_to_login_interface(fileno):
-    send_data = "Back to login interface." + interface_postfix
-    Chat_object_fileno_list[fileno] = -1
-    Wf_list[fileno] = None
-    Login_list[fileno] = False
-    Account_list[fileno] = ""
-    State_list[fileno] = Idle_state
-    sub_State_list[fileno] = Idle_state
-    return send_data
-
-
-def service_connection(s):
+def service_connection(ID):
     # if client send a request. If the data of the request is none, close this client's fd
-    data = s.recv(1024)
+    data = clients[ID].socket.recv(1024)
     if data:
-        do_service(s, data.decode())
+        do_service(ID, data)
     else:
-        close_connection(s)
+        close_connection(ID)
 
 def Change_Port(PORT):
     for i in range(1, len(os.sys.argv)):
@@ -367,21 +415,31 @@ def Change_Port(PORT):
                 PORT = int(os.sys.argv[i+1])
     return PORT
 
+def transfer_Files(s_sender, s_receiver, filenames):
+    # send filenames
+    s_receiver.sendall(struct.pack('i', len(filenames)))
+    s_receiver.sendall(pickle.dumps(filenames))
+    
+    # send files' content
+    for file in range(len(filenames)):
+        size = struct.unpack('i', s_sender.recv(4))[0]
+        print(size)
+        content = s_sender.recv(size)
+        
+        s_receiver.sendall(struct.pack('i', size))
+        s_receiver.sendall(content)
 
-def Print_State(fileno):
-    print("--- print state ----")
-    print("fileno    =", fileno)
-    print("Account   =", Account_list[fileno])
-    x = ""
-    if Login_list[fileno] == True:
-        x = "Yes"
-    else:
-        x = "No"
-    print("Log in?    ", x)
-    print("State     =", State_list[fileno])
-    print("sub State =", sub_State_list[fileno])
+def read_Accounts():
+    Account_Dict = {}
+    with open("./Account.csv", newline='') as csvfile:
+        # rows is a 2-dim list, [ [acnt0, pswd0],[acnt1, pswd1], ... ]
+        rows = csv.reader(csvfile)     
+        for row in rows:
+            # Save accounts info into a local dictionary
+            Account_Dict.update({row[0]: row[1]})
+            # print(row)
 
-
+    return Account_Dict
 
 if __name__ == "__main__":
     #-------Initialize all variable-------
@@ -390,72 +448,31 @@ if __name__ == "__main__":
     
     PORT = Change_Port(PORT)
 
-    Sock_list = []
+    clients = []
+    for i in range(100):
+        clients.append(Client())
 
-    # a fileno -> a state and a substate
-    addr_list = []
-
-    # boolean for whether it is login
-    Login_list = []
-    # Potential State_list = [ Idle_state, Sign_in_state, Sign_up_state, Check_state, Chat_state]
-    State_list = []
-    # Potential sub_State_list = [ "", "Disconnected"(?), Enter_acc_state, Enter_pwd_state, Enter_pwd_again_state, "Receive Offline message", "Start talking"]
-    sub_State_list = []
-    
-    # these 2 lists are for the server to store msg
-    # due to there will be 2 different pkg for the 2 msg
-    Account_list = []
-    Password_list = []
-    
-    Transfer_file_list = []
-    # writefile list
-    Wf_list = []
-    # Chat object list (account), fileno_list : if online, then its fileno
-    Chat_object_list = []
-    Chat_object_fileno_list = []
-    Chat_History_data = []
-
-    for i in range(1500):
-        Transfer_file_list.append([])
-        Sock_list.append(None)
-        addr_list.append('')
-        Account_list.append('')
-        Password_list.append('')
-        Wf_list.append(None)
-        Chat_object_list.append("")
-        Chat_object_fileno_list.append(-1)
-        Chat_History_data.append([])
-        Login_list.append(False)
-        State_list.append('Idle')
-        sub_State_list.append('Idle')
-        ##create server socket
+    # create server socket
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((HOST, PORT))
     server.listen(5)
-    addr_list[server.fileno()] = HOST
-        ##create select set
+    serv_addr = HOST
+    
+    # create select set
     readset = [server]
     writeset = []
     exceptionset = []
     server.setblocking(False)
 
-    Account_Dict = {}
-    # read Account file in csv 
-    with open("./Account.csv", newline='') as csvfile:
-        # rows is a 2-dim list, [ [acnt0, pswd0],[acnt1, pswd1], ... ]
-        rows = csv.reader(csvfile)     
-        for row in rows:
-            # Save accounts info into a local dictionary
-            Account_Dict.update({row[0]: row[1]})
-            # print(row)
+    Account_Dict = read_Accounts()
     
     #-------------------------------------
 
     print(f'the server is listening at {HOST}:{PORT}')
     print('waiting for connection...')
 
-    for acc in Account_Dict:
-        print(acc, Account_Dict[acc])
+    #for acc in Account_Dict:
+     #   print(acc, Account_Dict[acc])
 
     while True:
         readable,writable,exceptionable = select.select(readset,writeset,exceptionset,0)
@@ -463,6 +480,6 @@ if __name__ == "__main__":
             if s is server: # server get a request to create a fd for client
                 accept_wrapper(s) 
             else:           # server serve a client reqeust
-                service_connection(s)
+                service_connection(s.fileno())
 
     
