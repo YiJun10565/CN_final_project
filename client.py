@@ -12,6 +12,7 @@ prefix = account + " : "
 PORT = 0
 file_list = []
 tmp_data = []
+tmp_account = ''
 # --------------------------------------------
 
 
@@ -60,6 +61,7 @@ def recv_from_server(s):
     global data
     global file_list
     global tmp_data
+    global tmp_account
     data = s.recv(1024)
     if not data:
         print('server closing connection')
@@ -82,14 +84,18 @@ def recv_from_server(s):
         if (data != 'NAK' and data != 'ACK'): 
             print(data)
         #when client sign in successfully, we change client status to login
-        if state == 'Sign in' and 'Login successfully' in data:
-            state = 'Login'
+        if (state == 'Sign in' and 'Login successfully' in data) or (state == 'Sign up' and 'Sign up Successfully' in data):
             data = data.split()
-            account = data[2]
+            if state == 'Sign up':
+                account = tmp_account
+            else:
+                account = data[2]
             prefix = account + " : "
+            state = 'Login'
             readset.append(sys.stdin)
             os.system('clear')
-            print(f'Welcome {account}')
+            return
+            #print(f'Welcome {account}')
         inp = ''
         #for login not yet
         if state == 'INITIAL' or state == 'Sign in' or state == 'Sign up':
@@ -102,6 +108,9 @@ def recv_from_server(s):
                 while inp == '':
                     printprefix()
                     inp = input('')
+                if state == 'Sign up':
+                    tmp_account = inp
+
             send_data = inp.encode()
             s.send(send_data)
             chmod(inp)
@@ -109,21 +118,24 @@ def recv_from_server(s):
                 clean()
                 return
         elif state == 'Login':#the base status of client
-            if 'SendFile' in data: #if someone want to send file to me
-                tmp_data = inp.split()
-                file_list = tmp_data[2:] #storet the file name
+            if 'Help' not in data:
+                if 'SendFile' in data: #if someone want to send file to me
+                    tmp_data = inp.split()
+                    file_list = tmp_data[2:] #storet the file name
             
-                while inp == '': # need to response to server 'ACK' or 'NAK'
+                    while inp == '': # need to response to server 'ACK' or 'NAK'
+                        printprefix()
+                        inp = input('')
+                    inp = inp.lower()
+                    if inp == 'no' or inp == 'n':
+                        state = 'Login'
+                        send_data = 'NAK'
+                    else:
+                        state = 'Receive file'
+                        send_data = 'ACK'
+                    s.send(send_data.encode())                           
+                else: 
                     printprefix()
-                    inp = input('')
-                inp = inp.lower()
-                if inp == 'no' or inp == 'n':
-                    state = 'Login'
-                    send_data = 'NAK'
-                else:
-                    state = 'Receive file'
-                    send_data = 'ACK'
-                s.send(send_data.encode())                           
             else: 
                 printprefix()
                 

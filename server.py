@@ -361,6 +361,20 @@ def check_repeat_login(ID):
             send_data += "\nType 'Kick' to kick or do any other thing to forgive it."
             client.socket.sendadd(send_data.encode())
 
+def transfer_Files(s_sender, s_receiver, filenames):
+    # send filenames
+    s_receiver.sendall(struct.pack('i', len(filenames)))
+    s_receiver.sendall(pickle.dumps(filenames))
+    
+    # send files' content
+    for file in range(len(filenames)):
+        size = struct.unpack('i', s_sender.recv(4))[0]
+        print(size)
+        content = s_sender.recv(size)
+        
+        s_receiver.sendall(struct.pack('i', size))
+        s_receiver.sendall(content)
+
 def Home_service(ID, rawdata):
     print("Home_service")
     data = rawdata.decode()
@@ -405,15 +419,39 @@ def Home_service(ID, rawdata):
         
         elif data[0] == "(Exit)":
             clients[ID].Log_out()
-            send_data = "Logged out."
-            clients[ID].socket.sendall(send_data.encode())
+            clients[ID].socket.sendall("Logged out".encode())
+
+        elif data[0] == "SendFile":
+            friend_account = data[1]
+            if len(data) <= 2:
+                clients[ID].socket.sendall("Please enter as the following type:\nSendFile [account] [file1] [file2] ...".encode())
+                return
+            
+            
+            if friend_account not in Account_Dict: 
+                send_data = data[1] + " is not an existing account"
+            
+            elif send_file_object == Account_list[fileno]:
+                send_data = "Though you're a outsider, you still can't send a file to yourself!"
+            # check if online
+            online_flag = False
+            send_data = "NAK"
+            for i in range(len(Account_list)):
+                if Account_list[i] == send_file_object and Login_list[i] == True:
+                    online_flag = True
+                    Chat_object_fileno_list[fileno] = i
+                    Chat_object_list[fileno] = send_file_object
+                    send_data = "ACK"
+                    break
+            if online_flag:
+                Transfer_file_list = data[2:]
+                Chat_object_list[fileno] = send_file_object
+                State_list[fileno] = "Sendfile"
+                Transfer_file(Socket_list[fileno], Socket_list[Chat_object_fileno_list[fileno]], Transfer_file_list)
 
         else:
             send_data = "Unknown command, please enter again"
             clients[ID].socket.sendall(send_data.encode())
-
-
-
 
     elif clients[ID].state == Chat_state:
         Chat(ID, data)
@@ -425,7 +463,6 @@ def Home_service(ID, rawdata):
         print("Unknown State, Maybe a bug or undone")
         clients[ID].Log_out()
         
-
 def do_service(ID, rawdata):
     if clients[ID].login == False:
         print("Login_service")
@@ -464,20 +501,6 @@ def Change_Port(PORT):
                 print("Change port to ", os.sys.argv[i+1])
                 PORT = int(os.sys.argv[i+1])
     return PORT
-
-def transfer_Files(s_sender, s_receiver, filenames):
-    # send filenames
-    s_receiver.sendall(struct.pack('i', len(filenames)))
-    s_receiver.sendall(pickle.dumps(filenames))
-    
-    # send files' content
-    for file in range(len(filenames)):
-        size = struct.unpack('i', s_sender.recv(4))[0]
-        print(size)
-        content = s_sender.recv(size)
-        
-        s_receiver.sendall(struct.pack('i', size))
-        s_receiver.sendall(content)
 
 def read_Accounts():
     Account_Dict = {}
@@ -520,9 +543,6 @@ if __name__ == "__main__":
 
     print(f'the server is listening at {HOST}:{PORT}')
     print('waiting for connection...')
-
-    #for acc in Account_Dict:
-     #   print(acc, Account_Dict[acc])
 
     while True:
         readable,writable,exceptionable = select.select(readset,writeset,exceptionset,0)
