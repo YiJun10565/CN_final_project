@@ -77,6 +77,7 @@ class Client:
         print("Log in?    ", self.login)
         print("State     =", self.state)
         print("sub State =", self.substate)
+        print("emg State =", self.emgstate)
         print("-------------------")
 
 def accept_wrapper(s_server):
@@ -161,7 +162,6 @@ def sign_in_service(ID, data):
         if base64.b64encode(data.encode()).decode() == Account_Dict[clients[ID].account] :
             print("Login successfully")
             send_data = "Login successfully, " + clients[ID].account
-            #logging_list.append( Account_list[fileno] )
             clients[ID].Log_in()
             check_repeat_login(ID)
         else :
@@ -355,11 +355,11 @@ def Check_for_Chat_service(ID, friend_account):
 
 def check_repeat_login(ID):
     for i, client in enumerate(clients):
-        if i != ID and client.login and client.account == client.account and client.emgstate == Idle_state:
+        if i != ID and client.login and client.account == clients[ID].account and client.emgstate == Idle_state:
             client.emgstate = repeat_login_state
-            send_data = "Your account '"+ client.account + "' has been logged in from "+ clients[ID].address
+            send_data = "[Sysyem Message]Your account '"+ client.account + "' has been logged in from "+ clients[ID].address[0] + ":"+ str(clients[ID].address[1])
             send_data += "\nType 'Kick' to kick or do any other thing to forgive it."
-            client.socket.sendadd(send_data.encode())
+            client.socket.sendall(send_data.encode())
 
 def transfer_Files(s_sender, s_receiver, filenames):
     # send filenames
@@ -378,17 +378,17 @@ def transfer_Files(s_sender, s_receiver, filenames):
 def Home_service(ID, rawdata):
     print("Home_service")
     data = rawdata.decode()
-    '''
+    
     if clients[ID].emgstate == repeat_login_state:
         if data == "Kick":
             for i, client in enumerate(clients):
                 if i != ID and client.login and client.account == client.account:
                     clients[i].Log_out()
-                    send_data = "The Hacker is kicked."
-                    client.socket.sendadd(send_data.encode())
-        client.emgstate = Idle_state
+                    send_data = "[System Message]You have been kicked out due to the repeated login."
+                    client.socket.sendall(send_data.encode())
+        clients[ID].emgstate = Idle_state
         return
-'''
+
     if clients[ID].state == Idle_state:
         data1 = data
         data = data.split()
