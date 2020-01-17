@@ -99,7 +99,7 @@ def communicate(s):
         if inp == '(Exit)':
             clean()
 
-if __name__ == "__main__"
+if __name__ == "__main__":
     HOST = socket.gethostbyname(socket.gethostname())
     PORT = 1234
     Handling_argv()
