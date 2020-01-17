@@ -18,6 +18,7 @@ def Handling_argv():
                 print('-p can\'t be the last argv') 
             else:
                 PORT = int(os.sys.argv[i+1])
+
 def printprefix():
     print(prefix, end = '')
     sys.stdout.flush()
@@ -43,7 +44,6 @@ def clean():
         state = 'INITIAL'
         prefix = 'Guest' + ' : '
 
-
 def serve(s):
     global state
     global account
@@ -67,33 +67,32 @@ def serve(s):
             account = data[2]
             prefix = account + " : "
             readset.append(sys.stdin)
-            state == 'Login':
-            printprefix()
-            return
         inp = ''
         if state == 'INITIAL' or state == 'Sign in' or state == 'Sign up':
             if data.find("Password") > 0 or data.find("password") > 0:
                 while inp == '':
-                    printprefix()
+                    printprefix() 
                     inp = getpass.getpass('')
                     
             else:
                 while inp == '':
                     printprefix()
                     inp = input('')
-        send_data = inp.encode()
-        s.send(send_data)
-        chmod(inp)
-        if inp == '(Exit)':
-            clean()
+            send_data = inp.encode()
+            s.send(send_data)
+            chmod(inp)
+            if inp == '(Exit)':
+                clean()
+                return
+        elif state == 'Login':
+            printprefix()
 
 def communicate(s):
     global state
     if state == 'Login':
         inp = input('')
         if inp == '':
-            print(prefix, end = '')
-            sys.stdout.flush()
+            printprefix()
             return
         send_data = inp.encode()
         sock.send(send_data)
