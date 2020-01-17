@@ -4,6 +4,7 @@ import sys
 import getpass
 import types
 import os
+import test
 fail = ''
 #control the client status for command uses
 state = 'INITIAL'
@@ -52,6 +53,7 @@ def clean():
         prefix = 'Guest' + ' : '
     elif state == 'Chating':
         state = 'Login'
+        os.system('clear')
     
 def recv_from_server(s):
     global state
@@ -255,7 +257,7 @@ if __name__ == "__main__":
     if sock.connect_ex(server_addr) != 0:
         print('Failed to connect')
     else:
-        print('Success connect!')
+        print('Connection succeed!')
         #begin to interact with server
         while True:
             readable, writable, exceptionable = select.select(readset, writeset, exceptionset, 0)
