@@ -12,6 +12,7 @@ prefix = account + " : "
 PORT = 0
 file_list = []
 tmp_data = []
+tmp_account = ''
 # --------------------------------------------
 
 
@@ -60,6 +61,7 @@ def recv_from_server(s):
     global data
     global file_list
     global tmp_data
+    global tmp_account
     data = s.recv(1024)
     if not data:
         print('server closing connection')
@@ -83,10 +85,13 @@ def recv_from_server(s):
             print(data)
         #when client sign in successfully, we change client status to login
         if (state == 'Sign in' and 'Login successfully' in data) or (state == 'Sign up' and 'Sign up Successfully' in data):
-            state = 'Login'
             data = data.split()
-            account = data[2]
+            if state == 'Sign up':
+                account = tmp_account
+            else:
+                account = data[2]
             prefix = account + " : "
+            state = 'Login'
             readset.append(sys.stdin)
             os.system('clear')
             print(f'Welcome {account}')
@@ -102,6 +107,9 @@ def recv_from_server(s):
                 while inp == '':
                     printprefix()
                     inp = input('')
+                if state == 'Sign up':
+                    tmp_account = inp
+
             send_data = inp.encode()
             s.send(send_data)
             chmod(inp)
