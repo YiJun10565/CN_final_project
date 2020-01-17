@@ -99,31 +99,31 @@ def communicate(s):
         if inp == '(Exit)':
             clean()
 
-
-HOST = socket.gethostbyname(socket.gethostname())
-PORT = 1234
-Handling_argv()
-server_addr = (HOST, PORT)
-print('starting connection to', server_addr)
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-readset = [sock]
-writeset = []
-exceptionset = []
-data = ''
-#check the connection whehter success
-if sock.connect_ex(server_addr) != 0:
-    print('Failed to connect')
-else:
-    print('Success connect!')
-    #begin to interact with server
-    while True:
-        readable, writable, exceptionable = select.select(readset, writeset, exceptionset, 0)
-        for s in readable:
-            #message = input('please input command:')
-            #do_service(message)
-            if s is sock:
-                serve(s)
-            elif state == 'Login':
-                communicate(s)
-        if not readset:
-            break
+if __name__ == "__main__"
+    HOST = socket.gethostbyname(socket.gethostname())
+    PORT = 1234
+    Handling_argv()
+    server_addr = (HOST, PORT)
+    print('starting connection to', server_addr)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    readset = [sock]
+    writeset = []
+    exceptionset = []
+    data = ''
+    #check the connection whehter success
+    if sock.connect_ex(server_addr) != 0:
+        print('Failed to connect')
+    else:
+        print('Success connect!')
+        #begin to interact with server
+        while True:
+            readable, writable, exceptionable = select.select(readset, writeset, exceptionset, 0)
+            for s in readable:
+                #message = input('please input command:')
+                #do_service(message)
+                if s is sock:
+                    serve(s)
+                elif state == 'Login':
+                    communicate(s)
+            if not readset:
+                break
