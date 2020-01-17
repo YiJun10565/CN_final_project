@@ -9,7 +9,7 @@ fail = ''
 #control the client status for command uses
 state = 'INITIAL'
 account = "Guest"
-prefix = account + " :"
+prefix = account + ": "
 PORT = 0
 file_list = []
 tmp_data = []
@@ -47,10 +47,10 @@ def clean():
     elif state == 'Login':
         readset.remove(sys.stdin)
         state = 'INITIAL'
-        prefix = "Guest" + " :"
+        prefix = "Guest" + ": "
     elif state == 'Sign in' or state == 'Sign up':
         state = 'INITIAL'
-        prefix = 'Guest' + ' :'
+        prefix = 'Guest' + ': '
     elif state == 'Chating':
         state = 'Login'
         os.system('clear')
@@ -83,7 +83,7 @@ def recv_from_server(s):
             os.system('clear')
         
         #when client sign in successfully, we change client status to login
-        if (state == 'Sign in' and 'Login successfully' in data) or (state == 'Sign up' and 'Sign up Successfully' in data):
+        if (state == 'Sign in' and 'Welcome Home' in data) or (state == 'Sign up' and 'Sign up Successfully' in data):
             os.system('clear')
             print(data)
 
@@ -92,7 +92,7 @@ def recv_from_server(s):
                 account = tmp_account
             else:
                 account = data[2]
-            prefix = account + " :"
+            prefix = account + ": "
             state = 'Login'
             readset.append(sys.stdin)
             
@@ -105,7 +105,7 @@ def recv_from_server(s):
             if 'repeated' in data:
                 state == 'INITIAL'
                 readset.remove(sys.stdin)
-                prefix = 'Guest :'
+                prefix = 'Guest: '
                 printprefix()
                 return
             else:
@@ -206,15 +206,15 @@ def After_login(s):#reading from standardinput when in state = Login
         state == 'Send request'
         tmp_data = inp.split()
         if len(tmp_data) < 3:
-            print('Usage :SendFile [account id] [file_name1] [file_name2] ...')
+            print('Usage: SendFile [account id] [file_name1] [file_name2] ...')
             state = 'Login'
             printprefix()
             return
-        else :
+        else: 
             file_list = tmp_data[2:]
             flag = False
             for i in range(0, len(file_list)):
-                if not os.path.isfile(file_list[i]) :
+                if not os.path.isfile(file_list[i]): 
                     print('{} is not exist', format(file_list[i]))
                     flag = true
             if flag:
@@ -250,7 +250,7 @@ def recvfile(s): #This function deal with client receiving data
         chunksize = 1024
         time = 1
         while filesize > 0:
-            if filesize < chunksize :
+            if filesize < chunksize: 
                 chunksize = filesize
             data = s.recv(chunksize)
             file_to_write.write(data)
