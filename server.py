@@ -8,7 +8,7 @@ import csv
 # string
 # -------------
 
-interface_postfix = "\nEnter 'Sign in' to sign in, 'Sign up' to sign up"
+interface_postfix = "\nEnter 'Sign in' or 'Sign up'"
 exit_postfix = "\nYou can enter '(Exit)' to exit whenever you want."
 Idle_state = "Idle"
 Sign_in_state = "Sign in"
@@ -94,7 +94,7 @@ def accept_wrapper(s_server):
 
     readset.append(clients[ID].socket)
 
-    send_data = "Connected to the server" + interface_postfix
+    send_data = "Connected to the server" + interface_postfix + exit_postfix
     clients[ID].socket.send(send_data.encode())
 
 def sign_up_service(ID, data):
@@ -131,7 +131,7 @@ def sign_up_service(ID, data):
             newAccount = {clients[ID].account : encrypted_pwd}
             Account_Dict.update(newAccount)
 
-            send_data = "Sign up Successfully " + clients[ID].account
+            send_data = "Sign up Successfully, " + clients[ID].account
 
             with open('Account.csv', 'a', newline='') as csvfile:
                 writer = csv.writer(csvfile)
@@ -141,7 +141,7 @@ def sign_up_service(ID, data):
             clients[ID].Log_in()
 
         else:
-            send_data = "Wrong\nPlease enter the Account you want:"
+            send_data = "Wrong password.\nPlease enter the Account you want:"
             clients[ID].substate = Enter_acc_state
             clients[ID].account = ""
             clients[ID].password = ""
@@ -158,12 +158,13 @@ def sign_in_service(ID, data):
             clients[ID].substate = Enter_pwd_state
             send_data = "Enter Password:"
         else:
-            send_data = "Account not exists, please enter a valid account"
+            send_data = "Account not exists, please enter a valid account."
 
     elif clients[ID].substate == Enter_pwd_state:
         if base64.b64encode(data.encode()).decode() == Account_Dict[clients[ID].account] :
             print("Login successfully")
-            send_data = "Login successfully, " + clients[ID].account
+            send_data = "Welcome Home, " + clients[ID].account \
+                + "\nPlease enter your command.\nType 'Help' to check the details of commands."
             clients[ID].Log_in()
             check_repeat_login(ID)
         else :
@@ -172,7 +173,7 @@ def sign_in_service(ID, data):
     else:
         print("sign in error")
 
-    send_data += exit_postfix
+    #send_data += exit_postfix
     return send_data
     
 def Login_service(ID, rawdata):
@@ -386,12 +387,6 @@ def Home_service(ID, rawdata):
 
     if not hasattr(Home_service, "first"):
         Home_service.first = True
-
-    if Home_service.first:
-        clients[ID].socket.sendall(("Welcome to Home, " + clients[ID].account + "!\nPlease enter your command.\nType 'Help' to check the details of commands.").encode())
-
-    Home_service.first = False
-
 
     data = rawdata.decode()
     
