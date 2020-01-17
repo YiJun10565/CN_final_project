@@ -17,7 +17,7 @@ Enter_acc_state = "Enter Account"
 Enter_pwd_state = "Enter Password"
 Enter_pwd_again_state = "Enter Password again"
 
-Communicate_state = "Communicate"
+Chat_state = "Chat"
 Check_state = "Check"
 
 # -------------
@@ -27,6 +27,7 @@ def accept_wrapper(s):
     conn, addr = s.accept()
     print('accept connection from', addr)
     conn.setblocking(False)
+    Socket_list[conn.fileno()] = conn
     addr_list[conn.fileno()] = addr
     State_list[conn.fileno()] = Idle_state
     sub_State_list[conn.fileno()] = Idle_state
@@ -160,20 +161,53 @@ def List(fileno):
         send_data = send_data[:-1]
     return send_data
 
+# A's socket wanna talk to B
+# filenoA is A's fileno
+# A, B are there account
+def Start_Offline_Chat(filenoA, B):
+    A = Account_list[filenoA]
+    filename = ""
+    if A < B:
+        filename = A + B + ".log"
+    else:
+        filename = B + A + ".log"
+    Chat_History[fileno] = []
+    try :
+        Wf_list[filenoA] = open( filename, "r")
+        Chat_History[filenoA] = []
+        for i, line in enumerate(Wf_list[filenoA].readlines()):
+            line = line.strip()
+            Chat_History[filenoA] = ([])
+            cut = line.find(":")
+            Chat_History[filenoA][i].append(line[:cut])
+            Chat_History[filenoA][i].append(line[cut+1:])
+    except :
+        Wf_list[filenoA] = open( filename, "w")
+        
 '''
-def Communicate(s, data):
+def Chat(s, data):
     fileno = s.fileno()
     if data == "(Exit)":
+    # leaving
         send_data = "(Exit)" + "Back to menu"
-    if(sub_State_list[fileno] == Idle_state):
-        # data = account
-        if data not in Account_Dict:
-            send_data = data + " is not a existing account" + ", please enter a valid one"
-        else:
-            # communication log
-            logfile = Account_list[fileno] + data + "log.txt"
-            # wf_list[fileno] = open(
-'''
+        State_list[fileno] = Idle_state
+        sub_State_list[fileno] = Idle_state
+    # tell the other that this one is leaving
+    # Change to offline Chat 
+    if(sub_State_list[fileno] == "Offline Chat"):
+        
+    elif(sub_State_list[fileno] == "Online Chat"):
+        
+    else:
+        print("Unknown State while chatting, Back to Idle State")
+        State_list[fileno] = Idle_state
+        sub_State_list[fileno] = Idle_state
+'''     
+
+# def log_offline_data(fileno, accountB):
+    
+
+
 
 def After_Login_service(s, data):
     fileno = s.fileno()
@@ -181,39 +215,98 @@ def After_Login_service(s, data):
         data = data.split()
         sub_State_list[fileno] = Idle_state
         if(data[0] == "Help"):
-            send_data =  "-------Help--------\n"
-            send_data += "command:"
+            send_data =  "-------Help--------"
+            send_data += "\ncommand:"
             send_data += "\nCheck [account]"
-            send_data += "\nCommunicate [account]"
+            send_data += "\nChat [account]"
             send_data += "\nList"
-            send_data += "\nSendFile [account]"
+            send_data += "\nSendFile [account] [file1] [file2] ..."
             send_data += "\n(Exit)"
             send_data += "\n--------------------"
 
         elif(data[0] == "Check"):
-            if(len(data) == 0) : send_data = "Please enter as the following type:\nCheck [account]"
+            if(len(data) != 2) : send_data = "Please enter as the following type:\nCheck [account]"
             else : send_data = Check(s, data[1])
 
         elif(data[0] == "List"):
+            if(len(data) != 1) : send_data = "Please enter as the following type:\nList"
             send_data = List(fileno)
 
-        elif(data[0] == "Communicate"):
-            send_data = "Please enter the account you want to communicate with"
-            State_list[fileno] = Communicate_state
+        elif(data[0] == "Chat"):
+            chat_object = data[1]
+            if(len(data) != 2) : 
+                send_data = "Please enter as the following type:\nChat [account]"
+            elif chat_object not in Account_Dict : 
+                send_data = data[1] + " is not an existing account"
+            elif chat_object == Account_list[fileno]:
+                send_data = "Though you're a outsider, you still can't talk to yourself!"
+            else:
+                log_offline_data(fileno, chat_object)
+                State_list[fileno] = Chat_state
+                Chat_object_list[fileno] = account
+                # Check if online
+                online_flag = False
+                send_data = ""
+                for i in range(len(Account_list)):
+                    if Account_list[i] == chat_object and Login_list[i] == True:
+                        Chat_object_fileno_list[fileno] = i
+                        online_flag = True
+                        break
+                #     if online, ask B if he wants to chat
+                if online_flag:
+                #   if B is communicating through offline chat
+                #   -> online chat for them
+                    filenoB = Chat_object_fileno_list[fileno]
+                    if State_list[filenoB] == Chat_State and sub_State_list[filenoB] == "Offline Chat" and Chat_object_list[filenoB] == Account_list[fileno]:
+                        Start_Online_chat( fileno, filenoB)
+                        sub_State_list[fileno] = "Online Chat"
+                    # asking 
+                    else:
+                        send_data = "Asking " + account + " if he/she wants to chat with you ..."
+                        send_data += "\nYou can still sent send messages as you want"
+                        sub_State_list[fileno] = "Offline Chat"
+                        Start_Offline_chat(Account_list[fileno], account)
+                #         yes: online chat
+                #         no : offline chat
+                #     else offline chat
+                else :
+                    send_data = account + " is not online\nStart offline chatting"
+                    sub_State_list[fileno] = "Offline Chat"
+                    Start_Offline_chat(Account_list[fileno], account)
+                
+
+            
 
         elif(data[0] == "SendFile"):
-            send_data = "Please enter the account you want to send file to"
-            State_list[fileno] = "Sendfile"
+            send_file_object = data[1]
+            if( len(data) <= 2 ) send_data = "Please enter as the following type:\nSendFile [account] [file1] [file2] ..."
+            elif send_file_object not in Account_Dict : 
+                send_data = data[1] + " is not an existing account"
+            elif send_file_object == Account_list[fileno]:
+                send_data = "Though you're a outsider, you still can't send a file to yourself!"
+            # check if online
+            online_flag = False
+            send_data = "NAK"
+            for i in range(len(Account_list)):
+                if Account_list[i] == send_file_object and Login_list[i] == True:
+                    online_flag = True
+                    Chat_object_fileno_list[fileno] = i
+                    Chat_object_list[fileno] = send_file_object
+                    send_data = "ACK"
+                    break
+            if online_flag:
+                Transfer_file_list = data[2:]
+                Chat_object_list[fileno] = send_file_object
+                State_list[fileno] = "Sendfile"
+                Transfer_file(Socket_list[fileno], Socket_list[Chat_object_fileno_list[fileno]], Transfer_file_list)
         
         elif(data[0] == "(Exit)"):
             send_data = Back_to_login_interface(fileno)
         else:
             send_data = "Unknown command, please enter again"
         s.send(send_data.encode())
-    #elif(State_list[fileno] == Communicate_state):
-    #    Communicate(fileno, data)
-    #elif(State_list[fileno] == "Send file"):
-    #    Send_file(fileno, data)
+    elif(State_list[fileno] == Chat_state):
+        Chat(fileno, data)
     else:
         print("Unknown State, Maybe a bug or undone")
         Back_to_login_interface(fileno)
@@ -233,6 +326,12 @@ def close_connection(s):
     fileno = s.fileno()
     print('closing connection to', addr_list[s.fileno()])
     addr_list[fileno] = ''
+    Chat_object_fileno_list[fileno] = -1
+    try:
+        Wf_list[fileno].close()
+    except:
+        pass
+    Wf_list[fileno] = None
     Login_list[fileno] = False
     State_list[fileno] = Idle_state     
     sub_State_list[fileno] = Idle_state
@@ -241,6 +340,8 @@ def close_connection(s):
 
 def Back_to_login_interface(fileno):
     send_data = "Back to login interface." + interface_postfix
+    Chat_object_fileno_list[fileno] = -1
+    Wf_list[fileno] = None
     Login_list[fileno] = False
     Account_list[fileno] = ""
     State_list[fileno] = Idle_state
@@ -265,7 +366,8 @@ def Change_Port(PORT):
                 print("Change port to ", os.sys.argv[i+1])
                 PORT = int(os.sys.argv[i+1])
     return PORT
-        
+
+
 def Print_State(fileno):
     print("--- print state ----")
     print("fileno    =", fileno)
@@ -288,12 +390,14 @@ if __name__ == "__main__":
     
     PORT = Change_Port(PORT)
 
+    Sock_list = []
+
     # a fileno -> a state and a substate
     addr_list = []
 
     # boolean for whether it is login
     Login_list = []
-    # Potential State_list = [ Idle_state, Sign_in_state, Sign_up_state, Check_state, Communicate_state]
+    # Potential State_list = [ Idle_state, Sign_in_state, Sign_up_state, Check_state, Chat_state]
     State_list = []
     # Potential sub_State_list = [ "", "Disconnected"(?), Enter_acc_state, Enter_pwd_state, Enter_pwd_again_state, "Receive Offline message", "Start talking"]
     sub_State_list = []
@@ -303,14 +407,24 @@ if __name__ == "__main__":
     Account_list = []
     Password_list = []
     
+    Transfer_file_list = []
     # writefile list
-    wf_list = []
+    Wf_list = []
+    # Chat object list (account), fileno_list : if online, then its fileno
+    Chat_object_list = []
+    Chat_object_fileno_list = []
+    Chat_History_data = []
 
     for i in range(1500):
+        Transfer_file_list.append([])
+        Sock_list.append(None)
         addr_list.append('')
         Account_list.append('')
         Password_list.append('')
-        wf_list.append(None)
+        Wf_list.append(None)
+        Chat_object_list.append("")
+        Chat_object_fileno_list.append(-1)
+        Chat_History_data.append([])
         Login_list.append(False)
         State_list.append('Idle')
         sub_State_list.append('Idle')
