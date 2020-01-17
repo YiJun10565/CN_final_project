@@ -109,7 +109,7 @@ def recv_from_server(s):
                 clean()
                 return
         elif state == 'Login':#the base status of client
-            if 'Send' in data: #if someone want to send file to me
+            if 'SendFile' in data: #if someone want to send file to me
                 tmp_data = inp.split()
                 file_list = tmp_data[2:] #storet the file name
             
@@ -253,7 +253,7 @@ if __name__ == "__main__":
                 #do_service(message)
                 if s is sock:
                     if state != 'Receive file':
-                        recv_from_serve(s)
+                        recv_from_server(s)
                     else:
                         recv_for_file(s)
                 elif state == 'Login':
