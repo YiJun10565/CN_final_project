@@ -9,7 +9,7 @@ fail = ''
 #control the client status for command uses
 state = 'INITIAL'
 account = "Guest"
-prefix = account + " : "
+prefix = account + ": "
 PORT = 0
 file_list = []
 tmp_data = []
@@ -47,10 +47,10 @@ def clean():
     elif state == 'Login':
         readset.remove(sys.stdin)
         state = 'INITIAL'
-        prefix = "Guest" + " : "
+        prefix = "Guest" + ": "
     elif state == 'Sign in' or state == 'Sign up':
         state = 'INITIAL'
-        prefix = 'Guest' + ' : '
+        prefix = 'Guest' + ': '
     elif state == 'Chating':
         state = 'Login'
         os.system('clear')
@@ -74,30 +74,53 @@ def recv_from_server(s):
     else:
         data = data.decode()
         #when client A ask to chat with client B, we flush the input line of client B
-        if ((state == 'Login') and (('wants to chat' in data) or ('ask to send' in data))):
+        if ((state == 'Login') and (('wants to chat' in data) or ('ask to send' in data) or (data[0] == '[' and 'kick' in data))):
             tmp = '\b'
             for i in range(0, len(prefix)):
                 tmp += '\b'
             print(tmp, end = '')
         if ((state == 'Chat to') and ('is not an existing account' not in data)):
             os.system('clear')
-        #when client sena a request for sending file to another client
-        #wait for 'ACK' or 'NAK' to take action, so we don't print 'ACK' 'NAK' on screen
-        if (data != 'NAK' and data != 'ACK'): 
-            print(data)
+        
         #when client sign in successfully, we change client status to login
-        if (state == 'Sign in' and 'Login successfully' in data) or (state == 'Sign up' and 'Sign up Successfully' in data):
+        if (state == 'Sign in' and 'Welcome Home' in data) or (state == 'Sign up' and 'Sign up Successfully' in data):
+            os.system('clear')
+            print(data)
+
             data = data.split()
             if state == 'Sign up':
                 account = tmp_account
             else:
                 account = data[2]
-            prefix = account + " : "
+            prefix = account + ": "
             state = 'Login'
             readset.append(sys.stdin)
-            os.system('clear')
-            return
-            #print(f'Welcome {account}')
+            
+        #when client sena a request for sending file to another client
+        #wait for 'ACK' or 'NAK' to take action, so we don't print 'ACK' 'NAK' on screen
+        
+        elif (data != 'NAK' and data != 'ACK'):
+            print(data)
+        if data[0] == '[' and 'kick' in data:
+            if 'repeated' in data:
+                state == 'INITIAL'
+                readset.remove(sys.stdin)
+                prefix = 'Guest: '
+                printprefix()
+                return
+            else:
+                inp = ''
+                while inp == '':
+                    if state == 'Chating':
+                        inp = input('')
+                    elif state == 'Login':
+                        printprefix()
+                        inp = input('')
+                send_data = inp.encode()
+                s.send(sedn_data)
+                return
+           
+        #print(f'Welcome {account}')
         inp = ''
         #for login not yet
         if state == 'INITIAL' or state == 'Sign in' or state == 'Sign up':
@@ -121,11 +144,11 @@ def recv_from_server(s):
                 return
         elif state == 'Login':#the base status of client
             if 'Help' not in data:
-                if 'SendFile' in data: #if someone want to send file to me
+                if 'SendFile' in data:#if someone want to send file to me
                     tmp_data = inp.split()
                     file_list = tmp_data[2:] #storet the file name
             
-                    while inp == '': # need to response to server 'ACK' or 'NAK'
+                    while inp == '':# need to response to server 'ACK' or 'NAK'
                         printprefix()
                         inp = input('')
                     inp = inp.lower()
@@ -136,9 +159,9 @@ def recv_from_server(s):
                         state = 'Receive file'
                         send_data = 'ACK'
                     s.send(send_data.encode())                           
-                else: 
+                else:
                     printprefix()
-            else: 
+            else:
                 printprefix()
                 
         elif state == 'Send request':#If I want to send file to others
@@ -163,7 +186,7 @@ def recv_from_server(s):
                 print('The target account rejects your sending request.')
                 state = 'Login'
                 printprefix()
-        elif state == 'Chat to': #if we chat with somebody
+        elif state == 'Chat to':#if we chat with somebody
             if 'is not an existing account' in data:
                 state = 'Login'
                 printprefix()
@@ -171,7 +194,7 @@ def recv_from_server(s):
             else:
                 state = 'Chating'
 
-def After_login(s): #reading from standardinput when in state = Login
+def After_login(s):#reading from standardinput when in state = Login
     global state
     global tmp_data
     global file_list
@@ -183,15 +206,15 @@ def After_login(s): #reading from standardinput when in state = Login
         state == 'Send request'
         tmp_data = inp.split()
         if len(tmp_data) < 3:
-            print('Usage : SendFile [account id] [file_name1] [file_name2] ...')
+            print('Usage: SendFile [account id] [file_name1] [file_name2] ...')
             state = 'Login'
             printprefix()
             return
-        else :
+        else: 
             file_list = tmp_data[2:]
             flag = False
             for i in range(0, len(file_list)):
-                if not os.path.isfile(file_list[i]) :
+                if not os.path.isfile(file_list[i]): 
                     print('{} is not exist', format(file_list[i]))
                     flag = true
             if flag:
@@ -207,7 +230,7 @@ def After_login(s): #reading from standardinput when in state = Login
 
 
 
-def chat_status(s): #This function is used when client chat with somebody
+def chat_status(s):#This function is used when client chat with somebody
     global state
     inp = input('')
     if inp == '':
@@ -217,7 +240,7 @@ def chat_status(s): #This function is used when client chat with somebody
     if inp == '(Exit)':
         clean()
 
-def recvfile(s):  #This function deal with client receiving data
+def recvfile(s): #This function deal with client receiving data
     state = 'Sending'
     print('Waiting for transfer data')
     for i in range(0, len(file_list)):
@@ -227,7 +250,7 @@ def recvfile(s):  #This function deal with client receiving data
         chunksize = 1024
         time = 1
         while filesize > 0:
-            if filesize < chunksize :
+            if filesize < chunksize: 
                 chunksize = filesize
             data = s.recv(chunksize)
             file_to_write.write(data)

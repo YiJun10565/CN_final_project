@@ -8,7 +8,7 @@ import csv
 # string
 # -------------
 
-interface_postfix = "\nEnter 'Sign in' to sign in, 'Sign up' to sign up"
+interface_postfix = "\nEnter 'Sign in' or 'Sign up'"
 exit_postfix = "\nYou can enter '(Exit)' to exit whenever you want."
 Idle_state = "Idle"
 Sign_in_state = "Sign in"
@@ -23,6 +23,8 @@ Team_Chat_state = "Team Chat"
 Check_state = "Check"
 Offline_Chat_state = "Offline Chat"
 Online_Chat_state = "Online Chat"
+Sending_File_state = "Sending File"
+Recieving_File_state = "Receiving File"
 
 # -------------
 
@@ -92,7 +94,7 @@ def accept_wrapper(s_server):
 
     readset.append(clients[ID].socket)
 
-    send_data = "Connected to the server" + interface_postfix
+    send_data = "Connected to the server" + interface_postfix + exit_postfix
     clients[ID].socket.send(send_data.encode())
 
 def sign_up_service(ID, data):
@@ -129,7 +131,7 @@ def sign_up_service(ID, data):
             newAccount = {clients[ID].account : encrypted_pwd}
             Account_Dict.update(newAccount)
 
-            send_data = "Sign up Successfully " + clients[ID].account
+            send_data = "Sign up Successfully, " + clients[ID].account
 
             with open('Account.csv', 'a', newline='') as csvfile:
                 writer = csv.writer(csvfile)
@@ -139,7 +141,7 @@ def sign_up_service(ID, data):
             clients[ID].Log_in()
 
         else:
-            send_data = "Wrong\nPlease enter the Account you want:"
+            send_data = "Wrong password.\nPlease enter the Account you want:"
             clients[ID].substate = Enter_acc_state
             clients[ID].account = ""
             clients[ID].password = ""
@@ -156,12 +158,13 @@ def sign_in_service(ID, data):
             clients[ID].substate = Enter_pwd_state
             send_data = "Enter Password:"
         else:
-            send_data = "Account not exists, please enter a valid account"
+            send_data = "Account not exists, please enter a valid account."
 
     elif clients[ID].substate == Enter_pwd_state:
         if base64.b64encode(data.encode()).decode() == Account_Dict[clients[ID].account] :
             print("Login successfully")
-            send_data = "Login successfully, " + clients[ID].account
+            send_data = "Welcome Home, " + clients[ID].account \
+                + "\nPlease enter your command.\nType 'Help' to check the details of commands."
             clients[ID].Log_in()
             check_repeat_login(ID)
         else :
@@ -170,7 +173,7 @@ def sign_in_service(ID, data):
     else:
         print("sign in error")
 
-    send_data += exit_postfix
+    #send_data += exit_postfix
     return send_data
     
 def Login_service(ID, rawdata):
@@ -180,7 +183,6 @@ def Login_service(ID, rawdata):
     send_data = ""
 
     if clients[ID].state == Idle_state:        
-        send_data = "Unknown command, please try again.\nEnter 'Sign in' or 'Sign up'"
 
         if data == "Sign in":
             send_data = "Please enter your account:"
@@ -197,8 +199,11 @@ def Login_service(ID, rawdata):
             close_connection(clients[ID].socket)
             return
 
+        else:
+            send_data = "Unknown command, please try again.\nEnter 'Sign in' or 'Sign up'."
+
     elif data == '(Exit)':
-        send_data = "Back to login interface"
+        send_data = "Back to login interface."
         clients[ID].Log_out()
 
     elif clients[ID].state == Sign_in_state:
@@ -209,7 +214,7 @@ def Login_service(ID, rawdata):
 
     else:
         clients[ID].Log_out()
-        print("Unknown state when logging in")
+        print("Unknown state when logging in.")
 
     clients[ID].socket.sendall(send_data.encode())
 
@@ -309,7 +314,6 @@ def Check_for_Chat_service(ID, friend_account):
 
     if acc_stat == -1: 
         clients[ID].socket.sendall((friend_account + " is not an existing account.").encode())
-
 
     elif acc_stat == ID:
         clients[ID].socket.sendall("Though you're a outsider, you still can't talk to yourself!".encode())
@@ -433,7 +437,8 @@ def Team_Chat(ID):
 def Home_service(ID, rawdata):
     print("Home_service")
 
-    clients[ID].socket.sendall(("Welcome to Home, " + clients[ID].account + "!\nPlease enter your command.\nType 'Help' to check the details of commands.").encode())
+    if not hasattr(Home_service, "first"):
+        Home_service.first = True
 
     data = rawdata.decode()
     
@@ -499,7 +504,7 @@ def Home_service(ID, rawdata):
 
         elif data[0] == "(Exit)":
             clients[ID].Log_out()
-            clients[ID].socket.sendall("Logged out".encode())
+            clients[ID].socket.sendall("Logged out.".encode())
 
         elif data[0] == "SendFile":
             friend_account = data[1]
@@ -507,36 +512,39 @@ def Home_service(ID, rawdata):
                 clients[ID].socket.sendall("Please enter as the following type:\nSendFile [account] [file1] [file2] ...".encode())
                 return
             
+            acc_stat = check_Account_Status(friend_account)
+
+            if acc_stat == -1: 
+                clients[ID].socket.sendall((data[1] + " is not an existing account.").encode())
             
-            if friend_account not in Account_Dict: 
-                send_data = data[1] + " is not an existing account"
-            
-            elif send_file_object == Account_list[fileno]:
-                send_data = "Though you're a outsider, you still can't send a file to yourself!"
-            # check if online
-            online_flag = False
-            send_data = "NAK"
-            for i in range(len(Account_list)):
-                if Account_list[i] == send_file_object and Login_list[i] == True:
-                    online_flag = True
-                    Chat_object_fileno_list[fileno] = i
-                    Chat_object_list[fileno] = send_file_object
-                    send_data = "ACK"
-                    break
-            if online_flag:
-                Transfer_file_list = data[2:]
-                Chat_object_list[fileno] = send_file_object
-                State_list[fileno] = "Sendfile"
-                Transfer_file(Socket_list[fileno], Socket_list[Chat_object_fileno_list[fileno]], Transfer_file_list)
+            elif acc_stat == ID:
+                clients[ID].socket.sendall("Though you're a outsider, you still can't send a file to yourself!".encode())
+          
+            elif acc_stat == 0:
+                clients[ID].socket.sendall((data[1] + " is offline so that he/she cannot receive the file QQ").encode())
+
+            else: # friend is online
+                friend_ID = acc_stat
+
+                filenames = []
+                for filename in filenames:
+                    filenames.append(filename)
+
+                clients[ID].state = Sending_File_state
+                clients[friend_ID].state = Recieving_File_state
+                transfer_Files(clients[ID].socket, clients[friend_ID].socket, filenames)
+                clients[ID].state = Idle_state
+                clients[friend_ID].state = Idle_state
 
         else:
-            clients[ID].socket.sendall("Unknown command, please enter again".encode())
+            clients[ID].socket.sendall("Unknown command, please enter again.".encode())
 
     elif clients[ID].state == Chat_state:
         Chat(ID, data)
+        Home_service.first = True
 
     elif clients[ID].state == Receive_state:
-        Receive(ID)
+        receive_File(ID)
 
     elif clients[ID].state == Team_Chat_state:
         if clients[ID].substate == "Enter Team Password":
@@ -553,7 +561,7 @@ def Home_service(ID, rawdata):
             Team_Chat(ID, data)
 
     else:
-        print("Unknown State, Maybe a bug or undone")
+        print("Unknown State, Maybe a bug or undone > <")
         clients[ID].Log_out()
         
 def do_service(ID, rawdata):
