@@ -10,6 +10,8 @@ import csv
 
 interface_postfix = "\nEnter 'Sign in' to sign in, 'Sign up' to sign up"
 exit_postfix = "\nYou can enter '(Exit)' to exit whenever you want."
+Idle_state = "Idle"
+Enter_acc_state = "Enter Account"
 
 # -------------
 
@@ -146,9 +148,25 @@ def Check(s, account):
             send_data = account + " is online"
     s.send(send_data.encode())
 
+'''
+def Communicate(s, data):
+    fileno = s.fileno()
+    if data == "(Exit)":
+        send_data = "(Exit)" + "Back to menu"
+    if(sub_State_list[fileno] == "Idle"):
+        # data = account
+        if data not in Account_Dict:
+            send_data = data + " is not a existing account" + ", please enter a valid one"
+        else:
+            # communication log
+            logfile = Account_list[fileno] + data + "log.txt"
+            # wf_list[fileno] = open(
+'''
+
 def After_Login_service(s, data):
     fileno = s.fileno()
     if(State_list[fileno] == "Idle"):
+        sub_State_list[fileno] = "Idle"
         if(data == "Check"):
             send_data = "Please enter the account you want to check if it is online"
             State_list[fileno] = "Check"
@@ -181,10 +199,18 @@ def After_Login_service(s, data):
         s.send(send_data.encode())
     elif(State_list[fileno] == "Check"):
         Check(s, data)
-    #elif(State_list[fileno] == "Commnicate"):
-    #    Communicate(fileno, data)
+    elif(State_list[fileno] == "Commnicate"):
+        Communicate(fileno, data)
     #elif(State_list[fileno] == "Send file"):
     #    Send_file(fileno, data)
+    else:
+        print("Unknown State, Maybe a bug or undone")
+        send_data = "Back to login interface"
+        Login_list[fileno] = False
+        Account_list[fileno] = ""
+        State_list[fileno] = "Idle"
+        sub_State_list[fileno] = "Idle"
+        
 
 def do_service(s, recv_data):
     if(Login_list[s.fileno()] == False):
@@ -263,12 +289,14 @@ if __name__ == "__main__":
     Account_list = []
     Password_list = []
     
-    #logging_list = []
+    # writefile list
+    wf_list = []
 
     for i in range(1500):
         addr_list.append('')
         Account_list.append('')
         Password_list.append('')
+        wf_list.append(None)
         Login_list.append(False)
         State_list.append('Idle')
         sub_State_list.append('Idle')
