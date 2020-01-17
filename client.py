@@ -82,7 +82,7 @@ def recv_from_server(s):
         if (data != 'NAK' and data != 'ACK'): 
             print(data)
         #when client sign in successfully, we change client status to login
-        if state == 'Sign in' and 'Login successfully' in data:
+        if (state == 'Sign in' and 'Login successfully' in data) or (state == 'Sign up' and 'Sign up Successfully'):
             state = 'Login'
             data = data.split()
             account = data[2]
@@ -109,22 +109,25 @@ def recv_from_server(s):
                 clean()
                 return
         elif state == 'Login':#the base status of client
-            if 'SendFile' in data: #if someone want to send file to me
-                tmp_data = inp.split()
-                file_list = tmp_data[2:] #storet the file name
+            if 'Help' not in data:
+                if 'SendFile' in data: #if someone want to send file to me
+                    tmp_data = inp.split()
+                    file_list = tmp_data[2:] #storet the file name
             
-                while inp == '': # need to response to server 'ACK' or 'NAK'
-                    printprefix()
-                    inp = input('')
-                inp = inp.lower()
-                if inp == 'no' or inp == 'n':
-                    state = 'Login'
-                    send_data = 'NAK'
-                else:
-                    state = 'Receive file'
-                    send_data = 'ACK'
-                s.send(send_data.encode())                           
-            else: 
+                    while inp == '': # need to response to server 'ACK' or 'NAK'
+                        printprefix()
+                        inp = input('')
+                    inp = inp.lower()
+                    if inp == 'no' or inp == 'n':
+                        state = 'Login'
+                        send_data = 'NAK'
+                    else:
+                        state = 'Receive file'
+                        send_data = 'ACK'
+                    s.send(send_data.encode())                           
+                else: 
+                printprefix()
+            else :
                 printprefix()
                 
         elif state == 'Send request':#If I want to send file to others
