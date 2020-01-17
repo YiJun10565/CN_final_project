@@ -17,6 +17,7 @@ Enter_acc_state = "Enter Account"
 Enter_pwd_state = "Enter Password"
 Enter_pwd_again_state = "Enter Password again"
 
+repeat_login_state = "Repeat Login"
 Chat_state = "Chat"
 Check_state = "Check"
 Offline_Chat_state = "Offline Chat"
@@ -31,6 +32,7 @@ class Client:
         self.login = False
         self.state = Idle_state
         self.substate = Idle_state
+        self.emgstate = Idle_state
         self.account = ""
         self.password = ""
         self.friend_account = ""
@@ -70,7 +72,7 @@ class Client:
 
     def print_State(self):
         print("--- print state ----")
-        #print("fileno    =", ID)
+        print("fileno    =", self.socket.fileno())
         print("Account   =", self.account)
         print("Log in?    ", self.login)
         print("State     =", self.state)
@@ -160,9 +162,8 @@ def sign_in_service(ID, data):
             print("Login successfully")
             send_data = "Login successfully, " + clients[ID].account
             #logging_list.append( Account_list[fileno] )
-            clients[ID].login = True
-            clients[ID].state = Idle_state
-            clients[ID].substate = Idle_state
+            clients[ID].Log_in()
+            check_repeat_login(ID)
         else :
             print("Login fail")
             send_data = "Wrong password, please enter again."
@@ -248,11 +249,9 @@ def load_History_Data(ID):
         print("no file")
 
 def start_Offline_Chat(ID):
-    load_History_Data(ID)
     clients[ID].start_Chat(Offline_Chat_state)
 
 def start_Online_Chat(ID):
-    load_History_Data(ID)
     clients[ID].start_Chat(Online_Chat_state)
     clients[clients[ID].friend_ID].start_Chat(Online_Chat_state)
 
@@ -330,6 +329,7 @@ def Check_for_Chat_service(ID, friend_account):
     elif acc_stat == 0:
         clients[ID].friend_account = friend_account
         clients[ID].friend_ID = getID(friend_account)
+        load_History_Data(ID)
         start_Offline_Chat(ID)
 
     else: # friend is online
@@ -344,16 +344,37 @@ def Check_for_Chat_service(ID, friend_account):
             and clients[friend_ID].substate == "Offline Chat" \
             and clients[friend_ID].friend_ID == ID:
             clients[ID].socket.sendall("Start Online Chat!!!".encode())
+            load_History_Data(ID)
             start_Online_Chat(ID)
 
         else:
             clients[ID].socket.sendall("Start Offline Chat...".encode())
+            load_History_Data(ID)
             start_Offline_Chat(ID)
+
+
+def check_repeat_login(ID):
+    for i, client in enumerate(clients):
+        if i != ID and client.login and client.account == client.account and client.emgstate == Idle_state:
+            client.emgstate = repeat_login_state
+            send_data = "Your account '"+ client.account + "' has been logged in from "+ clients[ID].address
+            send_data += "\nType 'Kick' to kick or do any other thing to forgive it."
+            client.socket.sendadd(send_data.encode())
 
 def Home_service(ID, rawdata):
     print("Home_service")
     data = rawdata.decode()
-
+    '''
+    if clients[ID].emgstate == repeat_login_state:
+        if data == "Kick":
+            for i, client in enumerate(clients):
+                if i != ID and client.login and client.account == client.account:
+                    clients[i].Log_out()
+                    send_data = "The Hacker is kicked."
+                    client.socket.sendadd(send_data.encode())
+        client.emgstate = Idle_state
+        return
+'''
     if clients[ID].state == Idle_state:
         data1 = data
         data = data.split()
@@ -478,7 +499,7 @@ if __name__ == "__main__":
     PORT = Change_Port(PORT)
 
     clients = []
-    for i in range(100):
+    for i in range(10000):
         clients.append(Client())
 
     # create server socket
