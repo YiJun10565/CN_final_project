@@ -8,8 +8,8 @@ import test
 fail = ''
 #control the client status for command uses
 state = 'INITIAL'
-account = "Guest"
-prefix = account + ": "
+account = ">>"
+prefix = account
 PORT = 0
 file_list = []
 tmp_data = []
@@ -47,10 +47,10 @@ def clean():
     elif state == 'Login':
         readset.remove(sys.stdin)
         state = 'INITIAL'
-        prefix = "Guest" + ": "
+        prefix = ">>"
     elif state == 'Sign in' or state == 'Sign up':
         state = 'INITIAL'
-        prefix = 'Guest' + ': '
+        prefix = '>>'
     elif state == 'Chating':
         state = 'Login'
         os.system('clear')
@@ -101,13 +101,13 @@ def recv_from_server(s):
         
         elif (data != 'NAK' and data != 'ACK'):
             print(data)
+    
         if data[0] == '[' and 'kick' in data:
             if 'repeated' in data:
-                state == 'INITIAL'
+                state = 'INITIAL'
                 readset.remove(sys.stdin)
-                prefix = 'Guest: '
-                printprefix()
-                return
+                prefix = '>>'
+                
             else:
                 inp = ''
                 while inp == '':
@@ -116,8 +116,10 @@ def recv_from_server(s):
                     elif state == 'Login':
                         printprefix()
                         inp = input('')
+                if state == 'Login':
+                    printprefix()
                 send_data = inp.encode()
-                s.send(sedn_data)
+                s.send(send_data)
                 return
            
         #print(f'Welcome {account}')
