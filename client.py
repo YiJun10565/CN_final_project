@@ -74,19 +74,19 @@ def recv_from_server(s):
     else:
         data = data.decode()
         #when client A ask to chat with client B, we flush the input line of client B
-        if ((state == 'Login') and (('wants to chat' in data) or ('ask to send' in data))):
+        if ((state == 'Login') and (('wants to chat' in data) or ('ask to send' in data) or (data[0] == '[' and 'kick' in data))):
             tmp = '\b'
             for i in range(0, len(prefix)):
                 tmp += '\b'
             print(tmp, end = '')
         if ((state == 'Chat to') and ('is not an existing account' not in data)):
             os.system('clear')
-        #when client sena a request for sending file to another client
-        #wait for 'ACK' or 'NAK' to take action, so we don't print 'ACK' 'NAK' on screen
-        if (data != 'NAK' and data != 'ACK'): 
-            print(data)
+        
         #when client sign in successfully, we change client status to login
         if (state == 'Sign in' and 'Login successfully' in data) or (state == 'Sign up' and 'Sign up Successfully' in data):
+            os.system('clear')
+            print(data)
+
             data = data.split()
             if state == 'Sign up':
                 account = tmp_account
@@ -95,9 +95,32 @@ def recv_from_server(s):
             prefix = account + " : "
             state = 'Login'
             readset.append(sys.stdin)
-            os.system('clear')
-            return
-            #print(f'Welcome {account}')
+            
+        #when client sena a request for sending file to another client
+        #wait for 'ACK' or 'NAK' to take action, so we don't print 'ACK' 'NAK' on screen
+        
+        elif (data != 'NAK' and data != 'ACK'): 
+            print(data)
+        if data[0] == '[' and 'kick' in data:
+            if 'repeated' in data:
+                state == 'INITIAL'
+                readset.remove(sys.stdin)
+                prefix = 'Guest : '
+                printprefix()
+                return
+            else:
+                inp = ''
+                while inp == '':
+                    if state == 'Chating':
+                        inp = input('')
+                    elif state == 'Login':
+                        printprefix()
+                        inp = input('')
+                send_data = inp.encode()
+                s.send(sedn_data)
+                return
+           
+        #print(f'Welcome {account}')
         inp = ''
         #for login not yet
         if state == 'INITIAL' or state == 'Sign in' or state == 'Sign up':
