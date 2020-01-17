@@ -15,7 +15,7 @@ Sign_in_state = "Sign in"
 Sign_up_state = "Sign up"
 Enter_acc_state = "Enter Account"
 Enter_pwd_state = "Enter Password"
-Enter_pwd_again_state = Enter_pwd_again_state
+Enter_pwd_again_state = "Enter Password again"
 
 Communicate_state = "Communicate"
 Check_state = "Check"
@@ -149,7 +149,7 @@ def Check(s, account):
             send_data = account + " is online"
     return send_data
 
-def List():
+def List(fileno):
     send_data = ""
     for i in range(len(Account_list)):
         if Login_list[i] == True and i != fileno:
@@ -181,18 +181,18 @@ def After_Login_service(s, data):
         data = data.split()
         sub_State_list[fileno] = Idle_state
         if(data[0] == "Help"):
-            send_data = "command:"
+            send_data =  "-------Help--------\n"
+            send_data += "command:"
             send_data += "\nCheck [account]"
             send_data += "\nCommunicate [account]"
             send_data += "\nList"
             send_data += "\nSendFile [account]"
             send_data += "\n(Exit)"
-            
-        if(data[0] == "Check"):
-            if(len(data) == 0):
-                send_data = "Please enter the account as the second arguement"
-                break
-            send_data = Check(s, data[1])
+            send_data += "\n--------------------"
+
+        elif(data[0] == "Check"):
+            if(len(data) == 0) : send_data = "Please enter as the following type:\nCheck [account]"
+            else : send_data = Check(s, data[1])
 
         elif(data[0] == "List"):
             send_data = List(fileno)
