@@ -94,7 +94,8 @@ def recv_from_server(s):
             state = 'Login'
             readset.append(sys.stdin)
             os.system('clear')
-            print(f'Welcome {account}')
+            return
+            #print(f'Welcome {account}')
         inp = ''
         #for login not yet
         if state == 'INITIAL' or state == 'Sign in' or state == 'Sign up':
