@@ -266,16 +266,16 @@ def getID(account):
     return -1
 
 def Help_service(ID):
-    send_data =  "-------Help--------"
-    #send_data += "\ncommand:"
-    #send_data += "\nCheck [account]"
-    #send_data += "\nChat [account]"
-    #send_data += "\nlist Online Account"
-    #send_data += "\nSendFile [account] [file1] [file2] ..."
-    #send_data += "\n(Exit)"
-    send_data += "\n--------------------"
+    send_data =  "------ Help -------"
+    send_data += "\ncommand:"
+    send_data += "\nCheck [account]"
+    send_data += "\nChat [account]"
+    send_data += "\nlist Online Account"
+    send_data += "\nSendFile [account] [file1] [file2] ..."
+    send_data += "\n(Exit)"
+    send_data += "\n-------------------"
 
-    clients[ID].socket.sendall(send_data.encode())
+    clients[ID].socket.send(send_data.encode())
 
 def Check_service(ID, friend_account):
     acc_stat = check_Account_Status(friend_account)
