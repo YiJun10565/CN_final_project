@@ -30,7 +30,7 @@ class Client:
         self.address = ""
         self.login = False
         self.state = Idle_state
-        self.sub_state = Idle_state
+        self.substate = Idle_state
         self.account = ""
         self.password = ""
         self.friend_account = ""
@@ -41,11 +41,11 @@ class Client:
         self.socket = socket
         self.address = address
 
-    def close_Connection():
+    def close_Connection(self):
         self.socket.close()
         self.address = ""
 
-    def Log_out():
+    def Log_out(self):
         self.login = False
         self.state = Idle_state
         self.substate = Idle_state
@@ -55,16 +55,17 @@ class Client:
         self.friend_ID = -1
         self.friend_history_data = []
 
-    def start_Chat(self, sub_state):
-        self.substate = sub_state
+    def start_Chat(self, substate):
+        self.state = Chat_state
+        self.substate = substate
 
     def print_State(self):
         print("--- print state ----")
-        print("fileno    =", ID)
-        print("Account   =", clients[ID].account)
-        print("Log in?    ", clients[ID].login)
-        print("State     =", clients[ID].state)
-        print("sub State =", clients[ID].substate)
+        #print("fileno    =", ID)
+        print("Account   =", self.account)
+        print("Log in?    ", self.login)
+        print("State     =", self.state)
+        print("sub State =", self.substate)
         print("-------------------")
 
 def accept_wrapper(s_server):
@@ -106,11 +107,11 @@ def sign_up_service(ID, data):
             clients[ID].Log_out()
             send_data = "(Exit)"
         else:
-            clients[ID].substate = data
+            clients[ID].password = data
             send_data = "Please enter the password again:"
             clients[ID].substate = Enter_pwd_again_state
     
-    elif(clients[ID].substate == Enter_pwd_again_state):
+    elif clients[ID].substate == Enter_pwd_again_state:
         if data == clients[ID].password:
             encrypted_pwd = base64.b64encode(data.encode()).decode()
             newAccount = {clients[ID].account : encrypted_pwd}
@@ -133,9 +134,10 @@ def sign_up_service(ID, data):
     else:
         print("sign up error")
     
-    clients[ID].socket.sendall(send_data.encode())
+    return send_data
 
 def sign_in_service(ID, data):
+
     if clients[ID].substate == Enter_acc_state:
         if data in Account_Dict:
             clients[ID].account = data
@@ -159,18 +161,21 @@ def sign_in_service(ID, data):
         print("sign in error")
 
     send_data += exit_postfix
-    clients[ID].socket.send(send_data.encode())
+    return send_data
     
 def Login_service(ID, rawdata):
+
     data = rawdata.decode()
+    send_data = ""
+
     if clients[ID].state == Idle_state:        
         send_data = "Unknown command, please try again"
         send_data += "\nEnter 'Sign in' to sign in, 'Sign up' to sign up."
-        if(data == "Sign in"):
+        if data == "Sign in":
             send_data = "Please enter your account:"
             clients[ID].state = Sign_in_state
             clients[ID].substate = Enter_acc_state
-        elif(data == "Sign up"):
+        elif data == "Sign up":
             send_data = "Please enter the account you want:"
             clients[ID].state = Sign_up_state
             clients[ID].substate = Enter_acc_state
@@ -198,13 +203,13 @@ def check_Account_Status(account):
     if account not in Account_Dict:
         return -1
     for i, client in enumerate(clients):
-        if client.account == account and client.Login == True:
+        if client.account == account and client.login == True:
             return i
     return 0
 
 def find_Filename(ID):
-    A = client[ID].account
-    B = client[ID].friend_account
+    A = clients[ID].account
+    B = clients[ID].friend_account
     filename = ""
     if A < B:
         filename = A + '_' + B + ".log"
@@ -218,14 +223,23 @@ def load_History_Data(ID):
 
     filename = find_Filename(ID)
 
-    if isexist(filename):
+    if os.path.isfile(filename):
         with open(filename, 'r+') as CH:
             for i, line in enumerate(CH.readlines()):
-                line = line.strip()
-                clients[ID].friend_history_data.append([])
-                cut = line.find(":")
-                clients[ID].friend_history_data.append(line[:cut])
-                clients[ID].friend_history_data.append(line[cut+1:])
+                #line = line.strip()
+                #cut = line.find(":")
+                clients[ID].friend_history_data.append(line)
+                #clients[ID].friend_history_data.append(line[cut+2:])
+        
+        send_data = ""
+        for line in clients[ID].friend_history_data:
+            send_data += line
+        send_data = send_data[:-1]
+        print(send_data)
+        clients[ID].socket.sendall(send_data.encode())
+
+    else:
+        print("no file")
 
 def start_Offline_Chat(ID):
     load_History_Data(ID)
@@ -247,18 +261,18 @@ def getID(account):
 
 def Help_service(ID):
     send_data =  "-------Help--------"
-    send_data += "\ncommand:"
-    send_data += "\nCheck [account]"
-    send_data += "\nChat [account]"
-    send_data += "\nlist Online Account"
-    send_data += "\nSendFile [account] [file1] [file2] ..."
-    send_data += "\n(Exit)"
+    #send_data += "\ncommand:"
+    #send_data += "\nCheck [account]"
+    #send_data += "\nChat [account]"
+    #send_data += "\nlist Online Account"
+    #send_data += "\nSendFile [account] [file1] [file2] ..."
+    #send_data += "\n(Exit)"
     send_data += "\n--------------------"
 
     clients[ID].socket.sendall(send_data.encode())
 
 def Check_service(ID, friend_account):
-    acc_stat = check_Account_Status(account)
+    acc_stat = check_Account_Status(friend_account)
     if acc_stat > 0:
         send_data = friend_account + " is online."
     elif acc_stat == 0:
@@ -271,8 +285,9 @@ def Check_service(ID, friend_account):
 def list_Online_Account_service(ID):
     send_data = ""
     for i, client in enumerate(clients):
-        if client.Login == True and i != ID:
+        if client.login == True and i != ID:
             send_data += client.account + " is online.\n"
+
     if send_data == "":
         send_data = "Only you are online."
     else:
@@ -281,7 +296,7 @@ def list_Online_Account_service(ID):
     clients[ID].socket.sendall(send_data.encode())
 
 def Chat(ID, data):
-    chat_line = clients[ID].account + ": " + data + "\n"
+    chat_line = clients[ID].account + ": " + data
 
     clients[ID].friend_history_data.append([clients[ID].account, data])
     if clients[ID].substate == Online_Chat_state:
@@ -290,9 +305,7 @@ def Chat(ID, data):
 
     filename = find_Filename(ID)
     with open(filename, 'a+') as CH:
-        CH.write(chat_line)
-
-
+        CH.write(chat_line + "\n")
 
 def Check_for_Chat_service(ID, friend_account):
     acc_stat = check_Account_Status(friend_account)
@@ -316,25 +329,27 @@ def Check_for_Chat_service(ID, friend_account):
         
         # inform chat 
 
-        if clients[friend_ID].state == Chat_State \
+        if clients[friend_ID].state == Chat_state \
             and clients[friend_ID].substate == "Offline Chat" \
             and clients[friend_ID].friend_ID == ID:
             start_Online_Chat(ID)
 
         else:
             clients[ID].socket.sendall("Start Offline Chat...".encode())
-            Start_Offline_chat(ID)
+            start_Offline_Chat(ID)
 
 def Home_service(ID, rawdata):
-    data = data.decode()
+    print("Home_service")
+    data = rawdata.decode()
 
-    if(clients[ID].state == Idle_state):
+    if clients[ID].state == Idle_state:
+        data1 = data
         data = data.split()
 
-        if data[0] == "Help" :
+        if data[0] == "Help":
             Help_service(ID)
 
-        elif data[0] == "Check" :
+        elif data[0] == "Check":
             if len(data) != 2: 
                 send_data = "Please enter as the following type:\nCheck [account]"
                 clients[ID].socket.sendall(send_data.encode())
@@ -342,7 +357,7 @@ def Home_service(ID, rawdata):
 
             Check_service(ID, data[1])
 
-        elif data[0] == "list Online Account":
+        elif data1 == "list Online Account":
             list_Online_Account_service(ID)
 
         elif data[0] == "Chat":
@@ -360,18 +375,15 @@ def Home_service(ID, rawdata):
             send_data = "Logged out."
             clients[ID].socket.sendall(send_data.encode())
 
-        
-        
-
         else:
             send_data = "Unknown command, please enter again"
-        
+            clients[ID].socket.sendall(send_data.encode())
 
 
 
 
     elif clients[ID].state == Chat_state:
-        Chat(ID)
+        Chat(ID, data)
 
     elif clients[ID].state == Receive_state:
         Receive(ID)
@@ -386,7 +398,6 @@ def do_service(ID, rawdata):
         print("Login_service")
         Login_service(ID, rawdata)
     else:
-        print("Home_service")
         Home_service(ID, rawdata)
 
     clients[ID].print_State()
@@ -395,7 +406,7 @@ def close_connection(ID):
     print('closing connection to', clients[ID].address)
     
     readset.remove(clients[ID].socket)
-    clients[ID].close_connection()
+    clients[ID].close_Connection()
 
 def service_connection(ID):
     # if client send a request. If the data of the request is none, close this client's fd
@@ -431,7 +442,7 @@ def transfer_Files(s_sender, s_receiver, filenames):
 
 def read_Accounts():
     Account_Dict = {}
-    with open("./Account.csv", newline='') as csvfile:
+    with open("./Account.csv", 'r', newline='') as csvfile:
         # rows is a 2-dim list, [ [acnt0, pswd0],[acnt1, pswd1], ... ]
         rows = csv.reader(csvfile)     
         for row in rows:
