@@ -386,7 +386,7 @@ def Home_service(ID, rawdata):
     data = rawdata.decode()
     
     if clients[ID].emgstate == repeat_login_state:
-        if data == "Kick":
+        if "Kick" in data:
             for i, client in enumerate(clients):
                 if i != ID and client.login and client.account == client.account:
                     clients[i].Log_out()
