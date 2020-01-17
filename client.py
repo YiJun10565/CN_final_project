@@ -126,8 +126,8 @@ def recv_from_server(s):
                         send_data = 'ACK'
                     s.send(send_data.encode())                           
                 else: 
-                printprefix()
-            else :
+                    printprefix()
+            else: 
                 printprefix()
                 
         elif state == 'Send request':#If I want to send file to others
