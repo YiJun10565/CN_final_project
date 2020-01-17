@@ -200,7 +200,6 @@ def chat_status(s): #This function is used when client chat with somebody
         return
     send_data = inp.encode()
     sock.send(send_data)
-    clean()
     if inp == '(Exit)':
         clean()
 
