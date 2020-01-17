@@ -42,6 +42,7 @@ class Client:
         self.address = address
 
     def close_Connection(self):
+        self.Log_out()
         self.socket.close()
         self.address = ""
 
@@ -58,6 +59,14 @@ class Client:
     def start_Chat(self, substate):
         self.state = Chat_state
         self.substate = substate
+
+    def Log_in(self):
+        self.login = True
+        self.state = Idle_state
+        self.substate = Idle_state
+        self.friend_account = ""
+        self.friend_ID = -1
+        self.friend_history_data = []
 
     def print_State(self):
         print("--- print state ----")
@@ -124,8 +133,8 @@ def sign_up_service(ID, data):
                 writer.writerow([clients[ID].account, encrypted_pwd])
 
             clients[ID].password = encrypted_pwd
-            clients[ID].state = Idle_state
-            clients[ID].substate = Idle_state
+            clients[ID].Log_in()
+
         else:
             send_data = "Wrong\nPlease enter the Account you want:"
             clients[ID].substate = Enter_acc_state
@@ -226,10 +235,7 @@ def load_History_Data(ID):
     if os.path.isfile(filename):
         with open(filename, 'r+') as CH:
             for i, line in enumerate(CH.readlines()):
-                #line = line.strip()
-                #cut = line.find(":")
                 clients[ID].friend_history_data.append(line)
-                #clients[ID].friend_history_data.append(line[cut+2:])
         
         send_data = ""
         for line in clients[ID].friend_history_data:
@@ -296,6 +302,10 @@ def list_Online_Account_service(ID):
     clients[ID].socket.sendall(send_data.encode())
 
 def Chat(ID, data):
+    if data == "(Exit)":
+        clients[ID].Log_in()
+        return
+
     chat_line = clients[ID].account + ": " + data
 
     clients[ID].friend_history_data.append([clients[ID].account, data])
@@ -311,10 +321,11 @@ def Check_for_Chat_service(ID, friend_account):
     acc_stat = check_Account_Status(friend_account)
 
     if acc_stat == -1: 
-        send_data = friend_account + " is not an existing account."
+        clients[ID].socket.sendall((friend_account + " is not an existing account.").encode())
+
 
     elif acc_stat == ID:
-        send_data = "Though you're a outsider, you still can't talk to yourself!"
+        clients[ID].socket.sendall("Though you're a outsider, you still can't talk to yourself!".encode())
 
     elif acc_stat == 0:
         clients[ID].friend_account = friend_account
@@ -332,6 +343,7 @@ def Check_for_Chat_service(ID, friend_account):
         if clients[friend_ID].state == Chat_state \
             and clients[friend_ID].substate == "Offline Chat" \
             and clients[friend_ID].friend_ID == ID:
+            clients[ID].socket.sendall("Start Online Chat!!!".encode())
             start_Online_Chat(ID)
 
         else:
@@ -406,6 +418,12 @@ def close_connection(ID):
     print('closing connection to', clients[ID].address)
     
     readset.remove(clients[ID].socket)
+
+    if (clients[ID].substate == Online_Chat_state):
+        clients[clients[ID].friend_ID].substate = Offline_Chat_state
+        send_data = clients[ID].account + " has left..."
+        clients[clients[ID].friend_ID].socket.sendall(send_data)
+
     clients[ID].close_Connection()
 
 def service_connection(ID):
