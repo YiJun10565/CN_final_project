@@ -83,7 +83,7 @@ def accept_wrapper(s_server):
     #only deal with accept client
     conn, addr = s_server.accept()
     print('accept connection from', addr)
-
+    print(type(addr))
     ID = conn.fileno()
 
     clients[ID].build_Connection(conn, addr)
