@@ -82,7 +82,7 @@ def recv_from_server(s):
         if (data != 'NAK' and data != 'ACK'): 
             print(data)
         #when client sign in successfully, we change client status to login
-        if (state == 'Sign in' and 'Login successfully' in data) or (state == 'Sign up' and 'Sign up Successfully'):
+        if (state == 'Sign in' and 'Login successfully' in data) or (state == 'Sign up' and 'Sign up Successfully' in data):
             state = 'Login'
             data = data.split()
             account = data[2]
