@@ -5,6 +5,8 @@ import os
 import base64
 import csv
 import threading
+import struct
+import time
 
 # string
 # -------------
@@ -25,7 +27,7 @@ Check_state = "Check"
 Offline_Chat_state = "Offline Chat"
 Online_Chat_state = "Online Chat"
 Sending_File_state = "Sending File"
-Receive_state = "Receiving File"
+Receiving_File_state = "Receiving File"
 
 # -------------
 
@@ -409,10 +411,11 @@ def Check_for_transfer_Files_service(ID, data):
         #ACK_message = clients[friend_ID].socket.recv(3).decode()
 
         #if (ACK_message == "ACK"):
-        clients[ID].socket.sendall("AAA")
+        #clients[ID].socket.sendall("AAA".encode())
+        time.sleep(0.5)
 
         clients[ID].state = Sending_File_state
-        clients[friend_ID].state = Recieving_File_state
+        clients[friend_ID].state = Receiving_File_state
         transfer_Files(clients[ID].socket, clients[friend_ID].socket, filenames)
         clients[ID].state = Idle_state
         clients[friend_ID].state = Idle_state
