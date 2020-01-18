@@ -8,8 +8,8 @@ import test
 fail = ''
 #control the client status for command uses
 state = 'INITIAL'
-account = "Guest"
-prefix = account + ": "
+account = ">>"
+prefix = account
 PORT = 0
 file_list = []
 tmp_data = []
@@ -47,10 +47,10 @@ def clean():
     elif state == 'Login':
         readset.remove(sys.stdin)
         state = 'INITIAL'
-        prefix = "Guest" + ": "
+        prefix = ">>"
     elif state == 'Sign in' or state == 'Sign up':
         state = 'INITIAL'
-        prefix = 'Guest' + ': '
+        prefix = '>>'
     elif state == 'Chating':
         state = 'Login'
         os.system('clear')
@@ -75,13 +75,15 @@ def recv_from_server(s):
         data = data.decode()
         #when client A ask to chat with client B, we flush the input line of client B
         if ((state == 'Login') and (('wants to chat' in data) or ('ask to send' in data) or (data[0] == '[' and 'kick' in data))):
+            tmp = '\b\b'
+            print(tmp, end = '')
+        if ((state == 'Chat to') and ('is not an existing account' not in data or 'Though you' not in data)):
+            os.system('clear')
+        elif state == 'Chating':
             tmp = '\b'
             for i in range(0, len(prefix)):
                 tmp += '\b'
             print(tmp, end = '')
-        if ((state == 'Chat to') and ('is not an existing account' not in data)):
-            os.system('clear')
-        
         #when client sign in successfully, we change client status to login
         if (state == 'Sign in' and 'Welcome Home' in data) or (state == 'Sign up' and 'Sign up Successfully' in data):
             os.system('clear')
@@ -92,7 +94,6 @@ def recv_from_server(s):
                 account = tmp_account
             else:
                 account = data[2]
-            prefix = account + ": "
             state = 'Login'
             readset.append(sys.stdin)
             
@@ -101,13 +102,13 @@ def recv_from_server(s):
         
         elif (data != 'NAK' and data != 'ACK'):
             print(data)
+    
         if data[0] == '[' and 'kick' in data:
             if 'repeated' in data:
-                state == 'INITIAL'
+                state = 'INITIAL'
                 readset.remove(sys.stdin)
-                prefix = 'Guest: '
-                printprefix()
-                return
+                prefix = '>>'
+                
             else:
                 inp = ''
                 while inp == '':
@@ -116,8 +117,10 @@ def recv_from_server(s):
                     elif state == 'Login':
                         printprefix()
                         inp = input('')
+                if state == 'Login':
+                    printprefix()
                 send_data = inp.encode()
-                s.send(sedn_data)
+                s.send(send_data)
                 return
            
         #print(f'Welcome {account}')
@@ -145,7 +148,7 @@ def recv_from_server(s):
         elif state == 'Login':#the base status of client
             if 'Help' not in data:
                 if 'SendFile' in data:#if someone want to send file to me
-                    tmp_data = inp.split()
+                    tmp_data = data
                     file_list = tmp_data[2:] #storet the file name
             
                     while inp == '':# need to response to server 'ACK' or 'NAK'
@@ -189,15 +192,19 @@ def recv_from_server(s):
         elif state == 'Chat to':#if we chat with somebody
             if 'is not an existing account' in data:
                 state = 'Login'
+                prefix = '>>'
                 printprefix()
                 return
             else:
                 state = 'Chating'
+        elif state == 'Chating':
+            printprefix()
 
 def After_login(s):#reading from standardinput when in state = Login
     global state
     global tmp_data
     global file_list
+    global prefix
     inp = input('')
     if inp == '':
         printprefix()
@@ -223,6 +230,7 @@ def After_login(s):#reading from standardinput when in state = Login
                 return
     elif 'Chat' in inp:
         state = 'Chat to'
+        prefix = account + ': '
     send_data = inp.encode()
     sock.send(send_data)
     if inp == '(Exit)':
@@ -233,6 +241,7 @@ def After_login(s):#reading from standardinput when in state = Login
 def chat_status(s):#This function is used when client chat with somebody
     global state
     inp = input('')
+    printprefix()
     if inp == '':
         return
     send_data = inp.encode()
