@@ -462,27 +462,23 @@ def get_Team_password(Team_name):
 def Start_Team_Chat(ID):
     clients[ID].substate = "chat"
     clients[ID].friend_history_data = []
-    filename = clients[ID].friend_account + ".teamlog"
-    if os.path.isfile(filename):
-        with open(filename, 'r+') as CH:
-            for i, line in enumerate(CH.readlines()):
-                clients[ID].friend_history_data.append(line)
-        
-        send_data = ""
-        for line in clients[ID].friend_history_data:
+    filename = clients[ID].friend_account + ".teamlog"        
+    send_data = ""
+    with open(filename, 'r+') as CH:
+        for i, line in enumerate(CH.readlines()):
             send_data += line
-        send_data = send_data[:-1]
-        print(send_data)
-        clients[ID].socket.sendall(send_data.encode())
-        
-        send_data = "*** " + clients[ID].account + " has entered the room!! ***\n"
-        for i, client in enumerate(clients):
-            if client.login\
-                and i != ID\
-                and client.state != Team_Chat_state\
-                and client.substate != "chat"\
-                and client.friend_account == clients[ID].friend_account:
-                client.socket.sendall(send_data.encode())
+            clients[ID].friend_history_data.append(line)
+    send_data = send_data[:-1]
+    clients[ID].socket.sendall(send_data.encode())
+    
+    send_data = "*** " + clients[ID].account + " has entered the room!! ***\n"
+    for i, client in enumerate(clients):
+        if client.login\
+            and i != ID\
+            and client.state == Team_Chat_state\
+            and client.substate == "chat"\
+            and client.friend_account == clients[ID].friend_account:
+            client.socket.sendall(send_data.encode())
 
 
 def Team_Chat(ID, data):
@@ -491,15 +487,18 @@ def Team_Chat(ID, data):
         for i, client in enumerate(clients):
             if client.login\
                 and i != ID\
-                and client.state != Team_Chat_state\
-                and client.substate != "chat"\
+                and client.state == Team_Chat_state\
+                and client.substate == "chat"\
                 and client.friend_account == clients[ID].friend_account:
                 client.socket.sendall(send_data.encode())
 
-        clients[ID].Log_in()       
-        return
-    chat_line = clients[ID].account + ": " + data
+        send_data = "Welcome Home, " + clients[ID].account \
+                + " !\nPlease enter your command.\nType 'Help' to check the details of commands."
+        clients[ID].Log_in()
+        clients[ID].socket.sendall(send_data.encode())
+        return 
 
+    chat_line = clients[ID].account + ": " + data
     clients[ID].friend_history_data.append([clients[ID].account, data])
     
     for i, client in enumerate(clients):
@@ -508,13 +507,11 @@ def Team_Chat(ID, data):
             and client.state == Team_Chat_state \
             and client.substate == "chat" \
             and client.friend_account == clients[ID].friend_account:
-
             client.friend_history_data.append([clients[ID].account, data])
             client.socket.sendall(chat_line.encode())        
 
 
     filename = clients[ID].friend_account + ".teamlog"
-    print(filename)
     with open(filename, 'a') as CH:
         CH.write(chat_line + "\n")
 
