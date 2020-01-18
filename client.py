@@ -8,7 +8,7 @@ import test
 fail = ''
 #control the client status for command uses
 state = 'INITIAL'
-account = ">>"
+account = ">> "
 prefix = account
 PORT = 0
 file_list = []
@@ -47,10 +47,10 @@ def clean():
     elif state == 'Login':
         readset.remove(sys.stdin)
         state = 'INITIAL'
-        prefix = ">>"
+        prefix = ">> "
     elif state == 'Sign in' or state == 'Sign up':
         state = 'INITIAL'
-        prefix = '>>'
+        prefix = '>> '
     elif state == 'Chating':
         state = 'Login'
         os.system('clear')
@@ -107,7 +107,7 @@ def recv_from_server(s):
             if 'repeated' in data:
                 state = 'INITIAL'
                 readset.remove(sys.stdin)
-                prefix = '>>'
+                prefix = '>> '
                 
             else:
                 inp = ''
@@ -197,7 +197,7 @@ def recv_from_server(s):
         elif state == 'Chat to':#if we chat with somebody
             if 'is not an existing account' in data:
                 state = 'Login'
-                prefix = '>>'
+                prefix = '>> '
                 printprefix()
                 return
             else:
