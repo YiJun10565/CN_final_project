@@ -81,6 +81,7 @@ class Client:
         print("State     =", self.state)
         print("sub State =", self.substate)
         print("emg State =", self.emgstate)
+        print("FriendAcc =", self.friend_account)
         print("-------------------")
 
 def accept_wrapper(s_server):
@@ -427,8 +428,9 @@ def Create_Team(ID, Team_name):
     open(filename, "w").close()
     filename = Team_name + ".teamset"
     with open(filename, "w") as teamsetfile:
-        teamsetfile.write( "0000\n")
+        teamsetfile.write("0000\n")
         teamsetfile.write(clients[ID].account + "\n")
+    return
 
 def get_Team_password(Team_name):
     filename = Team_name + ".teamset"
@@ -474,7 +476,7 @@ def Team_Chat(ID, data):
                 and client.friend_account == clients[ID].friend_account:
                 client.socket.sendall(send_data.encode())
 
-            clients[ID].Log_in()       
+        clients[ID].Log_in()       
         return
     chat_line = clients[ID].account + ": " + data
 
@@ -530,11 +532,11 @@ def Home_service(ID, rawdata):
             list_Online_Accounts_service(ID)
 
         elif data[0] == "Chat":
-            friend_account = data[1]
             if len(data) != 2: 
                 send_data = "Please enter as the following type:\nChat [account]"
                 clients[ID].socket.sendall(send_data)
                 return
+            friend_account = data[1]
 
             Check_for_Chat_service(ID, friend_account)
 
