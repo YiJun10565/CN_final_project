@@ -4,6 +4,7 @@ import types
 import os
 import base64
 import csv
+import threading
 
 # string
 # -------------
@@ -280,12 +281,8 @@ def Help_service(ID):
     send_data += "\ncommand:"
     send_data += "\nCheck [account]"
     send_data += "\nChat [account]"
-<<<<<<< HEAD
-    send_data += "\nlist Online Accounts"
-=======
     send_data += "\nTeamChat [teamname](if not exist, create one)"
-    send_data += "\nlist Online Account"
->>>>>>> 15e92e8886a2cd7c3ec40258d3c32b4d382a5562
+    send_data += "\nlist Online Accounts"
     send_data += "\nSendFile [account] [file1] [file2] ..."
     send_data += "\n(Exit)"
     send_data += "\n-------------------"
@@ -378,44 +375,59 @@ def Chat(ID, data):
     with open(filename, 'a+') as CH:
         CH.write(chat_line + "\n")
 
-def Check_for_transfer_Files_service(ID, friend_account):
+def using_thread(ID, data):
+    readset.remove(clients[ID].socket)
+    readset.remove(clients[clients[ID].friend_ID].socket)
+
+    t = threading.Thread(target = Check_for_transfer_Files_service, args = (ID, data))
+    t.start()
+
+def Check_for_transfer_Files_service(ID, data):
+    data = data.split()
+    filenames = data[2:]
+    
+    friend_account = data[1]
     acc_stat = check_Account_Status(friend_account)
 
     if acc_stat == -1: 
-        clients[ID].socket.sendall((data[1] + " is not an existing account.").encode())
+        clients[ID].socket.sendall((friend_account + " is not an existing account.").encode())
     
     elif acc_stat == ID:
         clients[ID].socket.sendall("Though you're a outsider, you still can't send a file to yourself!".encode())
   
     elif acc_stat == 0:
-        clients[ID].socket.sendall((data[1] + " is offline so that he/she cannot receive the file QQ").encode())
+        clients[ID].socket.sendall((friend_account + " is offline so that he/she cannot receive the file QQ").encode())
 
     else: # friend is online
         friend_ID = acc_stat
 
-        filenames = []
-        for filename in filenames:
-            filenames.append(filename)
+        clients[friend_ID].socket.sendall(data)
 
-        clients[ID].state = Sending_File_state
-        clients[friend_ID].state = Recieving_File_state
-        transfer_Files(clients[ID].socket, clients[friend_ID].socket, filenames)
-        clients[ID].state = Idle_state
-        clients[friend_ID].state = Idle_state
+        ACK_message = clients[friend_ID].socket.recv(3).decode()
+
+        if (ACK_message == "ACK"):
+            clients[ID].socket.sendall("ACK")
+
+            clients[ID].state = Sending_File_state
+            clients[friend_ID].state = Recieving_File_state
+            transfer_Files(clients[ID].socket, clients[friend_ID].socket, filenames)
+            clients[ID].state = Idle_state
+            clients[friend_ID].state = Idle_state
+        else:
+            clients[ID].socket.sendall("NAK")        
 
 def transfer_Files(s_sender, s_receiver, filenames):
-    # send filenames
-    s_receiver.sendall(struct.pack('i', len(filenames)))
-    s_receiver.sendall(pickle.dumps(filenames))
-    
     # send files' content
     for file in range(len(filenames)):
         size = struct.unpack('i', s_sender.recv(4))[0]
-        print(size)
+        # print(size)
         content = s_sender.recv(size)
         
         s_receiver.sendall(struct.pack('i', size))
         s_receiver.sendall(content)
+
+    readset.append(s_sender)
+    readset.append(s_receiver)
 
 def check_repeat_login(ID):
     for i, client in enumerate(clients):
@@ -479,7 +491,6 @@ def Team_Chat(ID, data):
     print(filename)
     with open(filename, 'a') as CH:
         CH.write(chat_line + "\n")
->>>>>>> 15e92e8886a2cd7c3ec40258d3c32b4d382a5562
 
 def Home_service(ID, rawdata):
     print("Home_service")
@@ -550,17 +561,17 @@ def Home_service(ID, rawdata):
             else :
                 send_data = "Length error!\nPlease enter:TeamChat [team]"
                 clients[ID].socket.sendall(send_data.encode())
+        
         elif data[0] == "(Exit)":
             clients[ID].Log_out()
             clients[ID].socket.sendall("Logged out.".encode())
 
         elif data[0] == "SendFile":
-            friend_account = data[1]
             if len(data) <= 2:
                 clients[ID].socket.sendall("Please enter as the following type:\nSendFile [account] [file1] [file2] ...".encode())
                 return
             
-            Check_for_transfer_Files_service(ID, friend_account)
+            Check_for_transfer_Files_service(ID, data)
 
         else:
             clients[ID].socket.sendall("Unknown command, please enter again.".encode())
