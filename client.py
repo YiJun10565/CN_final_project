@@ -260,7 +260,18 @@ def recv_for_file(s): #This function deal with client receiving data
     print('Waiting for transfer data')
     for i in range(0, len(file_list)):
         file_to_write = open(file_list[i], 'wb')
-        filesize = struct.unpack('i', s.recv(4))[0]
+        file_to_tmp = open('tmp', 'w+b')
+        size = 4
+        left = 4
+        while left > 0:
+            if left < size:
+                size = left
+            data = s.recv(size)
+            file_to_tmp.write(data)
+            left -= len(data)
+        file_to_tmp.fseek(0)
+        obj = file_to_tmp.read(4)
+        filesize = struct.unpack('i', obj)[0]
         chunksize = 1024
         time = 1
         while filesize > 0:
