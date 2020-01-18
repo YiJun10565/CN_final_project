@@ -75,13 +75,15 @@ def recv_from_server(s):
         data = data.decode()
         #when client A ask to chat with client B, we flush the input line of client B
         if ((state == 'Login') and (('wants to chat' in data) or ('ask to send' in data) or (data[0] == '[' and 'kick' in data))):
+            tmp = '\b\b'
+            print(tmp, end = '')
+        if ((state == 'Chat to') and ('is not an existing account' not in data or 'Though you' not in data)):
+            os.system('clear')
+        elif state == 'Chating':
             tmp = '\b'
             for i in range(0, len(prefix)):
                 tmp += '\b'
             print(tmp, end = '')
-        if ((state == 'Chat to') and ('is not an existing account' not in data)):
-            os.system('clear')
-        
         #when client sign in successfully, we change client status to login
         if (state == 'Sign in' and 'Welcome Home' in data) or (state == 'Sign up' and 'Sign up Successfully' in data):
             os.system('clear')
@@ -147,7 +149,7 @@ def recv_from_server(s):
         elif state == 'Login':#the base status of client
             if 'Help' not in data:
                 if 'SendFile' in data:#if someone want to send file to me
-                    tmp_data = inp.split()
+                    tmp_data = data
                     file_list = tmp_data[2:] #storet the file name
             
                     while inp == '':# need to response to server 'ACK' or 'NAK'
@@ -195,6 +197,8 @@ def recv_from_server(s):
                 return
             else:
                 state = 'Chating'
+        elif state == 'Chating':
+            printprefix()
 
 def After_login(s):#reading from standardinput when in state = Login
     global state
@@ -235,6 +239,7 @@ def After_login(s):#reading from standardinput when in state = Login
 def chat_status(s):#This function is used when client chat with somebody
     global state
     inp = input('')
+    printprefix()
     if inp == '':
         return
     send_data = inp.encode()
