@@ -5,6 +5,7 @@ import getpass
 import types
 import os
 import test
+import struct
 fail = ''
 #control the client status for command uses
 state = 'INITIAL'
@@ -150,8 +151,13 @@ def recv_from_server(s):
                 if 'SendFile' in data:#if someone want to send file to me
                     tmp_data = data
                     file_list = tmp_data[2:] #storet the file name
-                    send_data = ''
-                    while True:
+                    send_data = s.recv(3).decode()
+                    if send_data == 'aaa':
+                        state = 'Receive file'
+                    else:
+                        state = 'Login'
+                        printprefix()
+                    """while True:
                         inp = ''
                         while inp == '':# need to response to server 'ACK' or 'NAK'
                             printprefix()
@@ -165,8 +171,7 @@ def recv_from_server(s):
                         elif inp == 'yes' or inp == 'y':
                             state = 'Receive file'
                             send_data = 'ACK'
-                            break
-                    s.send(send_data.encode())                           
+                            break"""
                 else:
                     printprefix()
             else:
@@ -174,7 +179,7 @@ def recv_from_server(s):
                 
         elif state == 'Send request':#If I want to send file to others
             
-            if 'ACK' in data:#if receive 'ACK', begin to transfer file
+            if 'aaa' in data:#if receive 'ACK', begin to transfer file
                 state = 'Sending'
                 for i in range(0, len(file_list)):
                     filesize = os.path.getsize(file_list[i])

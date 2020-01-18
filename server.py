@@ -321,7 +321,7 @@ def Check_for_Chat_service(ID, friend_account):
         clients[ID].socket.sendall((friend_account + " is not an existing account.").encode())
 
     elif acc_stat == ID:
-        clients[ID].socket.sendall("Though you're an outsider, you still can't talk to yourself!".encode())
+        clients[ID].socket.sendall("Even if you're an outsider, you still can't talk to yourself!".encode())
 
     elif acc_stat == 0:
         clients[ID].friend_account = friend_account
@@ -339,6 +339,7 @@ def Check_for_Chat_service(ID, friend_account):
         if clients[friend_ID].state == Chat_state \
             and clients[friend_ID].substate == Offline_Chat_state \
             and clients[friend_ID].friend_account == clients[ID].account:
+
             clients[friend_ID].friend_ID = ID
             load_History_Data(ID)
             start_Online_Chat(ID)
@@ -384,6 +385,7 @@ def using_thread(ID, data):
     t.start()
 
 def Check_for_transfer_Files_service(ID, data):
+    data1 = data
     data = data.split()
     filenames = data[2:]
     
@@ -402,20 +404,20 @@ def Check_for_transfer_Files_service(ID, data):
     else: # friend is online
         friend_ID = acc_stat
 
-        clients[friend_ID].socket.sendall(data)
+        clients[friend_ID].socket.sendall(data1.encode())
 
-        ACK_message = clients[friend_ID].socket.recv(3).decode()
+        #ACK_message = clients[friend_ID].socket.recv(3).decode()
 
-        if (ACK_message == "ACK"):
-            clients[ID].socket.sendall("ACK")
+        #if (ACK_message == "ACK"):
+        clients[ID].socket.sendall("AAA")
 
-            clients[ID].state = Sending_File_state
-            clients[friend_ID].state = Recieving_File_state
-            transfer_Files(clients[ID].socket, clients[friend_ID].socket, filenames)
-            clients[ID].state = Idle_state
-            clients[friend_ID].state = Idle_state
-        else:
-            clients[ID].socket.sendall("NAK")        
+        clients[ID].state = Sending_File_state
+        clients[friend_ID].state = Recieving_File_state
+        transfer_Files(clients[ID].socket, clients[friend_ID].socket, filenames)
+        clients[ID].state = Idle_state
+        clients[friend_ID].state = Idle_state
+        #else:
+        #    clients[ID].socket.sendall("NAK")        
 
 def transfer_Files(s_sender, s_receiver, filenames):
     # send files' content
@@ -592,7 +594,7 @@ def Home_service(ID, rawdata):
                 clients[ID].socket.sendall("Please enter as the following type:\nSendFile [account] [file1] [file2] ...".encode())
                 return
             
-            Check_for_transfer_Files_service(ID, data)
+            Check_for_transfer_Files_service(ID, data1)
 
         else:
             clients[ID].socket.sendall("Unknown command, please enter again.".encode())
