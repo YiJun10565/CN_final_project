@@ -74,7 +74,7 @@ def recv_from_server(s):
     else:
         data = data.decode()
         #when client A ask to chat with client B, we flush the input line of client B
-        if ((state == 'Login') and (('wants to chat' in data) or ('ask to send' in data) or (data[0] == '[' and 'kick' in data))):
+        if ((state == 'Login') and (('wants to chat' in data) or ('Help' not in data and 'SendFile' in data) or (data[0] == '[' and 'kick' in data))):
             tmp = '\b\b'
             print(tmp, end = '')
         if ((state == 'Chat to') and ('is not an existing account' not in data or 'Though you' not in data)):
@@ -150,17 +150,22 @@ def recv_from_server(s):
                 if 'SendFile' in data:#if someone want to send file to me
                     tmp_data = data
                     file_list = tmp_data[2:] #storet the file name
-            
-                    while inp == '':# need to response to server 'ACK' or 'NAK'
-                        printprefix()
-                        inp = input('')
-                    inp = inp.lower()
-                    if inp == 'no' or inp == 'n':
-                        state = 'Login'
-                        send_data = 'NAK'
-                    else:
-                        state = 'Receive file'
-                        send_data = 'ACK'
+                    send_data = ''
+                    while True:
+                        inp = ''
+                        while inp == '':# need to response to server 'ACK' or 'NAK'
+                            printprefix()
+                            inp = input('')
+                        inp = inp.lower()
+                        if inp == 'no' or inp == 'n':
+                            state = 'Login'
+                            send_data = 'NAK'
+                            printprefix()
+                            break
+                        elif inp == 'yes' or inp == 'y':
+                            state = 'Receive file'
+                            send_data = 'ACK'
+                            break
                     s.send(send_data.encode())                           
                 else:
                     printprefix()
@@ -249,7 +254,7 @@ def chat_status(s):#This function is used when client chat with somebody
     if inp == '(Exit)':
         clean()
 
-def recvfile(s): #This function deal with client receiving data
+def recv_for_file(s): #This function deal with client receiving data
     state = 'Sending'
     print('Waiting for transfer data')
     for i in range(0, len(file_list)):
