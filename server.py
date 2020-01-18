@@ -603,9 +603,6 @@ def Home_service(ID, rawdata):
         Chat(ID, data)
         Home_service.first = True
 
-    elif clients[ID].state == Receive_state:
-        receive_File(ID)
-
     elif clients[ID].state == Team_Chat_state:
         if clients[ID].substate == "Enter Team Password":
             if data == "(Exit)":
