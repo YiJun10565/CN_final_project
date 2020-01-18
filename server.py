@@ -321,7 +321,7 @@ def Check_for_Chat_service(ID, friend_account):
         clients[ID].socket.sendall((friend_account + " is not an existing account.").encode())
 
     elif acc_stat == ID:
-        clients[ID].socket.sendall("Though you're an outsider, you still can't talk to yourself!".encode())
+        clients[ID].socket.sendall("Even if you're an outsider, you still can't talk to yourself!".encode())
 
     elif acc_stat == 0:
         clients[ID].friend_account = friend_account
@@ -339,6 +339,7 @@ def Check_for_Chat_service(ID, friend_account):
         if clients[friend_ID].state == Chat_state \
             and clients[friend_ID].substate == Offline_Chat_state \
             and clients[friend_ID].friend_account == clients[ID].account:
+
             clients[friend_ID].friend_ID = ID
             load_History_Data(ID)
             start_Online_Chat(ID)
@@ -384,6 +385,7 @@ def using_thread(ID, data):
     t.start()
 
 def Check_for_transfer_Files_service(ID, data):
+    data1 = data
     data = data.split()
     filenames = data[2:]
     
@@ -402,20 +404,20 @@ def Check_for_transfer_Files_service(ID, data):
     else: # friend is online
         friend_ID = acc_stat
 
-        clients[friend_ID].socket.sendall(data)
+        clients[friend_ID].socket.sendall(data1.encode())
 
-        ACK_message = clients[friend_ID].socket.recv(3).decode()
+        #ACK_message = clients[friend_ID].socket.recv(3).decode()
 
-        if (ACK_message == "ACK"):
-            clients[ID].socket.sendall("ACK")
+        #if (ACK_message == "ACK"):
+        clients[ID].socket.sendall("AAA")
 
-            clients[ID].state = Sending_File_state
-            clients[friend_ID].state = Recieving_File_state
-            transfer_Files(clients[ID].socket, clients[friend_ID].socket, filenames)
-            clients[ID].state = Idle_state
-            clients[friend_ID].state = Idle_state
-        else:
-            clients[ID].socket.sendall("NAK")        
+        clients[ID].state = Sending_File_state
+        clients[friend_ID].state = Recieving_File_state
+        transfer_Files(clients[ID].socket, clients[friend_ID].socket, filenames)
+        clients[ID].state = Idle_state
+        clients[friend_ID].state = Idle_state
+        #else:
+        #    clients[ID].socket.sendall("NAK")        
 
 def transfer_Files(s_sender, s_receiver, filenames):
     # send files' content
@@ -457,27 +459,23 @@ def get_Team_password(Team_name):
 def Start_Team_Chat(ID):
     clients[ID].substate = "chat"
     clients[ID].friend_history_data = []
-    filename = clients[ID].friend_account + ".teamlog"
-    if os.path.isfile(filename):
-        with open(filename, 'r+') as CH:
-            for i, line in enumerate(CH.readlines()):
-                clients[ID].friend_history_data.append(line)
-        
-        send_data = ""
-        for line in clients[ID].friend_history_data:
+    filename = clients[ID].friend_account + ".teamlog"        
+    send_data = ""
+    with open(filename, 'r+') as CH:
+        for i, line in enumerate(CH.readlines()):
             send_data += line
-        send_data = send_data[:-1]
-        print(send_data)
-        clients[ID].socket.sendall(send_data.encode())
-        
-        send_data = "*** " + clients[ID].account + " has entered the room!! ***\n"
-        for i, client in enumerate(clients):
-            if client.login\
-                and i != ID\
-                and client.state != Team_Chat_state\
-                and client.substate != "chat"\
-                and client.friend_account == clients[ID].friend_account:
-                client.socket.sendall(send_data.encode())
+            clients[ID].friend_history_data.append(line)
+    send_data = send_data[:-1]
+    clients[ID].socket.sendall(send_data.encode())
+    
+    send_data = "*** " + clients[ID].account + " has entered the room!! ***\n"
+    for i, client in enumerate(clients):
+        if client.login\
+            and i != ID\
+            and client.state == Team_Chat_state\
+            and client.substate == "chat"\
+            and client.friend_account == clients[ID].friend_account:
+            client.socket.sendall(send_data.encode())
 
 
 def Team_Chat(ID, data):
@@ -486,15 +484,18 @@ def Team_Chat(ID, data):
         for i, client in enumerate(clients):
             if client.login\
                 and i != ID\
-                and client.state != Team_Chat_state\
-                and client.substate != "chat"\
+                and client.state == Team_Chat_state\
+                and client.substate == "chat"\
                 and client.friend_account == clients[ID].friend_account:
                 client.socket.sendall(send_data.encode())
 
-        clients[ID].Log_in()       
-        return
-    chat_line = clients[ID].account + ": " + data
+        send_data = "Welcome Home, " + clients[ID].account \
+                + " !\nPlease enter your command.\nType 'Help' to check the details of commands."
+        clients[ID].Log_in()
+        clients[ID].socket.sendall(send_data.encode())
+        return 
 
+    chat_line = clients[ID].account + ": " + data
     clients[ID].friend_history_data.append([clients[ID].account, data])
     
     for i, client in enumerate(clients):
@@ -503,13 +504,11 @@ def Team_Chat(ID, data):
             and client.state == Team_Chat_state \
             and client.substate == "chat" \
             and client.friend_account == clients[ID].friend_account:
-
             client.friend_history_data.append([clients[ID].account, data])
             client.socket.sendall(chat_line.encode())        
 
 
     filename = clients[ID].friend_account + ".teamlog"
-    print(filename)
     with open(filename, 'a') as CH:
         CH.write(chat_line + "\n")
 
@@ -592,7 +591,7 @@ def Home_service(ID, rawdata):
                 clients[ID].socket.sendall("Please enter as the following type:\nSendFile [account] [file1] [file2] ...".encode())
                 return
             
-            Check_for_transfer_Files_service(ID, data)
+            Check_for_transfer_Files_service(ID, data1)
 
         else:
             clients[ID].socket.sendall("Unknown command, please enter again.".encode())
