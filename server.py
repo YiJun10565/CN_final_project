@@ -528,6 +528,31 @@ def Team_Chat(ID, data):
             send_data = send_data[:-1]
         clients[ID].socket.sendall(send_data.encode())
         return
+    
+    data2 = data.split()
+    if data2[0] == "(ChangePassword)":
+        if len(data2) == 2:
+            newpwd = data2[1]
+            filename = clients[ID].friend_account + ".teamset"
+            contents = []
+            with open( filename, "r") as rf:
+                contents = rf.readlines()
+            contents[0] = newpwd + '\n'
+            with open( filename, "w") as wf:
+                for content in contents:
+                    wf.write(content)
+            send_data = clients[ID].account + " has change the password of the room into " + newpwd
+            for i, client in enumerate(clients):
+                if client.login\
+                    and client.state == Team_Chat_state\
+                    and client.substate == "chat"\
+                    and client.friend_account == clients[ID].friend_account:
+                    client.socket.sendall(send_data.encode())
+            
+        else:
+            send_data = "Wrong format: (ChangePassword) [new password]"
+            clients[ID].socket.sendall(send_data.encode())
+        return 
 
     chat_line = clients[ID].account + ": " + data
     clients[ID].friend_history_data.append([clients[ID].account, data])
@@ -650,6 +675,10 @@ def Home_service(ID, rawdata):
                 send_file = "Correct Password!\nNow you are a member of " + clients[ID].friend_account
                 clients[ID].socket.sendall(send_file.encode())
                 Start_Team_Chat(ID)
+            else :
+                send_file = "Wrong password, enter a correct one or type (Exit) to leave"
+                clients[ID].socket.sendall(send_file.encode())
+
                   
         elif clients[ID].substate == "chat":
             Team_Chat(ID, data)
