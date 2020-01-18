@@ -94,7 +94,6 @@ def recv_from_server(s):
                 account = tmp_account
             else:
                 account = data[2]
-            prefix = account + ": "
             state = 'Login'
             readset.append(sys.stdin)
             
@@ -193,6 +192,7 @@ def recv_from_server(s):
         elif state == 'Chat to':#if we chat with somebody
             if 'is not an existing account' in data:
                 state = 'Login'
+                prefix = '>>'
                 printprefix()
                 return
             else:
@@ -204,6 +204,7 @@ def After_login(s):#reading from standardinput when in state = Login
     global state
     global tmp_data
     global file_list
+    global prefix
     inp = input('')
     if inp == '':
         printprefix()
@@ -229,6 +230,7 @@ def After_login(s):#reading from standardinput when in state = Login
                 return
     elif 'Chat' in inp:
         state = 'Chat to'
+        prefix = account + ': '
     send_data = inp.encode()
     sock.send(send_data)
     if inp == '(Exit)':
