@@ -280,12 +280,9 @@ def Help_service(ID):
     send_data += "\ncommand:"
     send_data += "\nCheck [account]"
     send_data += "\nChat [account]"
-<<<<<<< HEAD
     send_data += "\nlist Online Accounts"
-=======
     send_data += "\nTeamChat [teamname](if not exist, create one)"
     send_data += "\nlist Online Account"
->>>>>>> 15e92e8886a2cd7c3ec40258d3c32b4d382a5562
     send_data += "\nSendFile [account] [file1] [file2] ..."
     send_data += "\n(Exit)"
     send_data += "\n-------------------"
@@ -455,13 +452,30 @@ def Start_Team_Chat(ID):
         send_data = send_data[:-1]
         print(send_data)
         clients[ID].socket.sendall(send_data.encode())
+        
+        send_data = "*** " + clients[ID].account + " has entered the room!! ***\n"
+        for i, client in enumerate(clients):
+            if client.login\
+                and i != ID\
+                and client.state != Team_Chat_state\
+                and client.substate != "chat"\
+                and client.friend_account == clients[ID].friend_account:
+                client.socket.sendall(send_data.encode())
+
 
 def Team_Chat(ID, data):
     if data == "(Exit)":
-        clients[ID].Log_in()
-        return
-    
+        send_data = "*** " + clients[ID].account + " has leaved the room!! ***\n"
+        for i, client in enumerate(clients):
+            if client.login\
+                and i != ID\
+                and client.state != Team_Chat_state\
+                and client.substate != "chat"\
+                and client.friend_account == clients[ID].friend_account:
+                client.socket.sendall(send_data.encode())
 
+            clients[ID].Log_in()       
+        return
     chat_line = clients[ID].account + ": " + data
 
     clients[ID].friend_history_data.append([clients[ID].account, data])
@@ -475,11 +489,12 @@ def Team_Chat(ID, data):
 
             client.friend_history_data.append([clients[ID].account, data])
             client.socket.sendall(chat_line.encode())        
+
+
     filename = clients[ID].friend_account + ".teamlog"
     print(filename)
     with open(filename, 'a') as CH:
         CH.write(chat_line + "\n")
->>>>>>> 15e92e8886a2cd7c3ec40258d3c32b4d382a5562
 
 def Home_service(ID, rawdata):
     print("Home_service")
