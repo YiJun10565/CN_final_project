@@ -6,6 +6,8 @@ import types
 import os
 import test
 import struct
+import time
+
 fail = ''
 #control the client status for command uses
 state = 'INITIAL'
@@ -151,7 +153,8 @@ def recv_from_server(s):
                 if 'SendFile' in data:#if someone want to send file to me
                     tmp_data = data
                     file_list = tmp_data[2:] #storet the file name
-                    send_data = s.recv(3).decode()
+                    send_data = 'aaa'
+                    time.sleep(0.5)
                     if send_data == 'aaa':
                         state = 'Receive file'
                     else:
@@ -179,26 +182,21 @@ def recv_from_server(s):
                 
         elif state == 'Send request':#If I want to send file to others
             
-            if 'aaa' in data:#if receive 'ACK', begin to transfer file
-                state = 'Sending'
-                for i in range(0, len(file_list)):
-                    filesize = os.path.getsize(file_list[i])
-                    file_to_send = open(file_list[i], 'rb')
-                    s.send(struct,pack('i', filesize))
-                    l = file_to_send.read()
-                    s.sendall(l)
-                    file_to_send.close() 
-                    print(f'{file_list[i]} has sent.')
-                sys.stdin.flush()
-                printprefix()
-                state = 'Login'
-            elif 'is not an exist account' in data:
-                state = 'Login'
-                printprefix()
-            else:#if receive 'NAK'
-                print('The target account rejects your sending request.')
-                state = 'Login'
-                printprefix()
+            #if 'aaa' in data:#if receive 'ACK', begin to transfer file
+               
+            state = 'Sending'
+            sleep(0.5)
+            for i in range(0, len(file_list)):
+                filesize = os.path.getsize(file_list[i])
+                file_to_send = open(file_list[i], 'rb')
+                s.send(struct,pack('i', filesize))
+                l = file_to_send.read()
+                s.sendall(l)
+                file_to_send.close() 
+                print(f'{file_list[i]} has sent.')
+            sys.stdin.flush()
+            printprefix()
+            state = 'Login'
         elif state == 'Chat to':#if we chat with somebody
             if 'is not an existing account' in data:
                 state = 'Login'
