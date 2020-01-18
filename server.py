@@ -468,13 +468,13 @@ def Start_Team_Chat(ID):
         for i, line in enumerate(CH.readlines()):
             send_data += line
             clients[ID].friend_history_data.append(line)
-    send_data = send_data[:-1]
+    if send_data != "":
+        send_data = send_data[:-1]
     clients[ID].socket.sendall(send_data.encode())
     
-    send_data = "*** " + clients[ID].account + " has entered the room!! ***\n"
+    send_data = "*** " + clients[ID].account + " has entered the room!! ***"
     for i, client in enumerate(clients):
         if client.login\
-            and i != ID\
             and client.state == Team_Chat_state\
             and client.substate == "chat"\
             and client.friend_account == clients[ID].friend_account:
@@ -483,7 +483,7 @@ def Start_Team_Chat(ID):
 
 def Team_Chat(ID, data):
     if data == "(Exit)":
-        send_data = "*** " + clients[ID].account + " has leaved the room!! ***\n"
+        send_data = "*** " + clients[ID].account + " has leaved the room!! ***"
         for i, client in enumerate(clients):
             if client.login\
                 and i != ID\
@@ -497,6 +497,21 @@ def Team_Chat(ID, data):
         clients[ID].Log_in()
         clients[ID].socket.sendall(send_data.encode())
         return 
+    if data == "(List)":
+        send_data = ""
+        for i, client in enumerate(clients):
+            if client.login\
+                and i != ID\
+                and client.state == Team_Chat_state\
+                and client.substate == "chat"\
+                and client.friend_account == clients[ID].friend_account:
+                send_data += client.account + " is online\n"
+        if send_data == "":
+            send_data = "Only you are online"
+        else :
+            send_data = send_data[:-1]
+        clients[ID].socket.sendall(send_data.encode())
+        return
 
     chat_line = clients[ID].account + ": " + data
     clients[ID].friend_history_data.append([clients[ID].account, data])
@@ -551,7 +566,7 @@ def Home_service(ID, rawdata):
         elif data[0] == "Chat":
             if len(data) != 2: 
                 send_data = "Please enter as the following type:\nChat [account]"
-                clients[ID].socket.sendall(send_data)
+                clients[ID].socket.sendall(send_data.encode())
                 return
             friend_account = data[1]
 
@@ -570,7 +585,6 @@ def Home_service(ID, rawdata):
                 filename = Team_name + ".teamset"
                 with open(filename, "r") as teamsetfile:
                     lines = teamsetfile.readlines()
-                    accounts = []
                     for i, line in enumerate(lines):
                         if i != 0 and clients[ID].account == line.strip():
                             in_Team_flag = True
@@ -602,9 +616,6 @@ def Home_service(ID, rawdata):
     elif clients[ID].state == Chat_state:
         Chat(ID, data)
         Home_service.first = True
-
-    elif clients[ID].state == Receive_state:
-        receive_File(ID)
 
     elif clients[ID].state == Team_Chat_state:
         if clients[ID].substate == "Enter Team Password":
