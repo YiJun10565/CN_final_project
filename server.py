@@ -285,6 +285,7 @@ def Help_service(ID):
     send_data += "\nCheck [account]"
     send_data += "\nChat [account]"
     send_data += "\nlist Online Accounts"
+    send_data += "\nlist All Accounts"
     send_data += "\nTeamChat [teamname](if not exist, create one)"
     send_data += "\nSendFile [account] [file1] [file2] ..."
     send_data += "\n(Exit)"
@@ -311,6 +312,22 @@ def list_Online_Accounts_service(ID):
 
     if send_data == "":
         send_data = "Only you are online."
+    else:
+        send_data = send_data[:-1]
+
+    clients[ID].socket.sendall(send_data.encode())
+
+def list_All_Accounts_service(ID):
+    send_data = ""
+    for acc, passw in Account_Dict.items():
+        acc_ID = getID(acc)
+        if acc_ID != -1:
+            send_data += acc + ": online\n"
+        else:
+            send_data += acc + ": offline\n"
+
+    if send_data == "":
+        send_data = "Only you are in this system QQ."
     else:
         send_data = send_data[:-1]
 
@@ -480,10 +497,9 @@ def Start_Team_Chat(ID):
             and client.friend_account == clients[ID].friend_account:
             client.socket.sendall(send_data.encode())
 
-
 def Team_Chat(ID, data):
     if data == "(Exit)":
-        send_data = "*** " + clients[ID].account + " has leaved the room!! ***"
+        send_data = "*** " + clients[ID].account + " has left the room.. ***"
         for i, client in enumerate(clients):
             if client.login\
                 and i != ID\
@@ -560,6 +576,9 @@ def Home_service(ID, rawdata):
 
             Check_service(ID, data[1])
 
+        elif data1 == "list All Accounts":
+            list_All_Accounts_service(ID)
+
         elif data1 == "list Online Accounts":
             list_Online_Accounts_service(ID)
 
@@ -601,7 +620,8 @@ def Home_service(ID, rawdata):
         
         elif data[0] == "(Exit)":
             clients[ID].Log_out()
-            clients[ID].socket.sendall("Logged out.".encode())
+            send_data = "Logged out.\nEnter 'Sign in' or 'Sign up'" + exit_postfix
+            clients[ID].socket.sendall(send_data.encode())
 
         elif data[0] == "SendFile":
             if len(data) <= 2:
