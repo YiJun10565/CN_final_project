@@ -154,7 +154,6 @@ def recv_from_server(s):
                     tmp_data = data
                     file_list = tmp_data[2:] #storet the file name
                     send_data = 'aaa'
-                    time.sleep(0.5)
                     if send_data == 'aaa':
                         state = 'Receive file'
                     else:
@@ -258,12 +257,21 @@ def chat_status(s):#This function is used when client chat with somebody
         clean()
 
 def recv_for_file(s): #This function deal with client receiving data
-    state = 'Sending'
     print('Waiting for transfer data')
     for i in range(0, len(file_list)):
         file_to_write = open(file_list[i], 'wb')
-        filesize = s.recv(4)
-        filesize = struct.unpack('i', filesize)[0]
+        file_to_tmp = open('tmp', 'w+b')
+        size = 4
+        left = 4
+        while left > 0:
+            if left < size:
+                size = left
+            data = s.recv(size)
+            file_to_tmp.write(data)
+            left -= len(data)
+        file_to_tmp.fseek(0)
+        obj = file_to_tmp.read(4)
+        filesize = struct.unpack('i', obj)[0]
         chunksize = 1024
         time = 1
         while filesize > 0:
