@@ -56,6 +56,7 @@ def clean():
         prefix = '>> '
     elif state == 'Chating':
         state = 'Login'
+        prefix = '>> '
         os.system('clear')
     
 def recv_from_server(s):
@@ -184,7 +185,6 @@ def recv_from_server(s):
             #if 'aaa' in data:#if receive 'ACK', begin to transfer file
                
             state = 'Sending'
-            sleep(0.5)
             for i in range(0, len(file_list)):
                 filesize = os.path.getsize(file_list[i])
                 file_to_send = open(file_list[i], 'rb')
@@ -204,8 +204,10 @@ def recv_from_server(s):
                 return
             else:
                 state = 'Chating'
+                printprefix()
         elif state == 'Chating':
-            printprefix()
+            if 'has left...' not in data:
+                printprefix()
 
 def After_login(s):#reading from standardinput when in state = Login
     global state
@@ -240,6 +242,19 @@ def After_login(s):#reading from standardinput when in state = Login
         prefix = account + ': '
     send_data = inp.encode()
     sock.send(send_data)
+    if state == 'Send request':
+        for i in range(0, len(file_list)):
+            filesize = os.path.getsize(file_list[i])
+            file_to_send = open(file_list[i], 'rb')
+            s.send(struct,pack('i', filesize))
+            l = file_to_send.read()
+            s.sendall(l)
+            file_to_send.close() 
+            print(f'{file_list[i]} has sent.')
+        sys.stdin.flush()
+        printprefix()
+        state = 'Login'
+
     if inp == '(Exit)':
         clean()
 
@@ -251,11 +266,12 @@ def chat_status(s):#This function is used when client chat with somebody
     printprefix()
     if inp == '':
         return
-    send_data = inp.encode()
-    sock.send(send_data)
     if inp == '(Exit)':
         clean()
 
+    send_data = inp.encode()
+    sock.send(send_data)
+    
 def recv_for_file(s): #This function deal with client receiving data
     print('Waiting for transfer data')
     for i in range(0, len(file_list)):
